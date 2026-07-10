@@ -40,6 +40,7 @@ jobs:
         env:
           VITE_ROUTER_MODE: hash
           VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL }}
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: |
           if [ -z "$VITE_SOCKET_URL" ]; then
             echo "Configure the VITE_SOCKET_URL repository variable with the Render backend URL."
