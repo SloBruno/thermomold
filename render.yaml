@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: thermomold-server
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: CLIENT_ORIGIN
+        sync: false
