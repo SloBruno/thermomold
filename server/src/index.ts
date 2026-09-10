@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import type { SimulatorState, DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from '../../shared/types';
+import { createTelemetryStore, normalizeTelemetry } from './telemetry.js';
 
 const CP_WATER = 4.18;
 const MOLD_TARGET_TEMP = 80;
@@ -26,6 +27,12 @@ const io = new Server(server, {
 });
 
 const PORT = Number(process.env.PORT ?? 3001);
+const configuredStaleAfterMs = Number(process.env.TELEMETRY_STALE_MS ?? 30_000);
+const telemetryStaleAfterMs = Number.isFinite(configuredStaleAfterMs) && configuredStaleAfterMs > 0
+  ? configuredStaleAfterMs
+  : 30_000;
+const telemetryDeviceKey = process.env.TELEMETRY_DEVICE_KEY;
+const telemetryStore = createTelemetryStore(telemetryStaleAfterMs);
 
 let state: SimulatorState = {
   ambientTemp: 25,
@@ -369,6 +376,8 @@ function calculateDashboardData(state: SimulatorState, moldParameters?: MoldPara
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
+  socket.emit('telemetry:data', telemetryStore.getStatus());
+
   const data = calculateDashboardData(state);
   socket.emit('dashboard:data', data);
 
@@ -441,6 +450,28 @@ io.on('connection', (socket) => {
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', state });
+});
+
+app.get('/api/telemetry', (_req, res) => {
+  res.json(telemetryStore.getStatus());
+});
+
+app.post('/api/telemetry', (req, res) => {
+  if (telemetryDeviceKey && req.get('X-Device-Key') !== telemetryDeviceKey) {
+    res.status(401).json({ error: 'não autorizado' });
+    return;
+  }
+
+  const normalized = normalizeTelemetry(req.body);
+  if (!normalized.ok) {
+    res.status(400).json({ error: normalized.error });
+    return;
+  }
+
+  const sample = telemetryStore.save(normalized.value);
+  const status = telemetryStore.getStatus();
+  io.emit('telemetry:data', status);
+  res.status(202).json({ accepted: true, sample });
 });
 
 app.post('/simulate', (req, res) => {

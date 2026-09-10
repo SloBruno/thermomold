@@ -2,6 +2,7 @@ import { BrowserRouter, HashRouter, Routes, Route, Navigate, NavLink } from 'rea
 import SimpleSimulatorPage from './pages/SimpleSimulatorPage'
 import SimpleDashboardPage from './pages/SimpleDashboardPage'
 import MoldParametersPage from './pages/MoldParametersPage'
+import RealSensorPage from './pages/RealSensorPage'
 
 function App() {
   const Router = import.meta.env.VITE_ROUTER_MODE === 'hash' ? HashRouter : BrowserRouter
@@ -48,6 +49,18 @@ function App() {
             >
               Configuração Molde
             </NavLink>
+            <NavLink
+              to="/sensor-real"
+              className={({ isActive }) =>
+                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-white text-neutral-900'
+                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                }`
+              }
+            >
+              Sensor Real
+            </NavLink>
           </div>
         </nav>
         <main>
@@ -55,6 +68,7 @@ function App() {
             <Route path="/simple-simulator" element={<SimpleSimulatorPage />} />
             <Route path="/simple-dashboard" element={<SimpleDashboardPage />} />
             <Route path="/mold-parameters" element={<MoldParametersPage />} />
+            <Route path="/sensor-real" element={<RealSensorPage />} />
             <Route path="*" element={<Navigate to="/simple-simulator" replace />} />
           </Routes>
         </main>
