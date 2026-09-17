@@ -1,11 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import socket from '../lib/socket'
 
+type ThermocoupleReading = {
+  id: 'max6675-1' | 'max6675-2'
+  temperatureC: number
+}
+
+type LevelReading = {
+  sensor: 'AJ-SR04M'
+  distanceMm: number
+}
+
 type TelemetrySample = {
   deviceId: string
   temperatureC: number
   observedAt: string
   sensor: 'MAX6675'
+  sensors?: {
+    thermocouples: [ThermocoupleReading, ThermocoupleReading]
+    level: LevelReading
+  }
   receivedAt: string
 }
 
@@ -39,7 +53,7 @@ export default function RealSensorPage() {
 
   useEffect(() => {
     void loadTelemetry()
-    const refresh = window.setInterval(() => { void loadTelemetry() }, 5_000)
+    const refresh = window.setInterval(() => { void loadTelemetry() }, 500)
     const handleTelemetry = (payload: TelemetryStatus) => {
       setTelemetry(payload)
       setError(null)
@@ -86,9 +100,26 @@ export default function RealSensorPage() {
           </div>
         ) : (
           <article className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm space-y-5">
-            <div>
-              <p className="text-sm font-medium text-neutral-500">Temperatura</p>
-              <p className="text-5xl font-bold tabular-nums text-neutral-900">{sample.temperatureC.toFixed(2)} °C</p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">MAX6675 #1</p>
+                <p className="text-3xl font-bold tabular-nums text-neutral-900">
+                  {(sample.sensors?.thermocouples[0].temperatureC ?? sample.temperatureC).toFixed(2)} °C
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">MAX6675 #2</p>
+                <p className="text-3xl font-bold tabular-nums text-neutral-900">
+                  {sample.sensors?.thermocouples?.[1]?.temperatureC?.toFixed(2) ?? '—'}
+                  {sample.sensors?.thermocouples?.[1]?.temperatureC !== undefined ? ' °C' : ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Nível (AJ-SR04M)</p>
+                <p className="text-3xl font-bold tabular-nums text-neutral-900">
+                  {sample.sensors?.level.distanceMm ?? '—'} mm
+                </p>
+              </div>
             </div>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>

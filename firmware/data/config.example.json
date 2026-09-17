@@ -1,9 +1,6 @@
 {
   "deviceId": "thermomold-press-01",
-  "endpoint": "http://telemetry.example.invalid/api/telemetry",
+  "endpoint": "https://thermomold.onrender.com/api/telemetry",
   "deviceKey": "",
-  "sckPin": 18,
-  "csPin": 5,
-  "soPin": 19,
-  "reportIntervalMs": 30000
+  "reportIntervalMs": 500
 }

@@ -44,3 +44,29 @@ inline std::string buildTelemetryPayload(const std::string &deviceId,
          "\",\"temperatureC\":" + formatTemperatureC(temperatureC) +
          ",\"sensor\":\"MAX6675\"}";
 }
+
+inline unsigned long minimumTelemetryIntervalMs() {
+  return 500;
+}
+
+inline std::string defaultTelemetryEndpoint() {
+  return "https://thermomold.onrender.com/api/telemetry";
+}
+
+inline bool hasHttpsScheme(const std::string &endpoint) {
+  return endpoint.rfind("https://", 0) == 0;
+}
+
+inline std::string buildMultiSensorTelemetryPayload(const std::string &deviceId,
+                                                    double thermocoupleOneC,
+                                                    double thermocoupleTwoC,
+                                                    unsigned long levelDistanceMm) {
+  const std::string thermocoupleOne = formatTemperatureC(thermocoupleOneC);
+  const std::string thermocoupleTwo = formatTemperatureC(thermocoupleTwoC);
+  return "{\"deviceId\":\"" + escapeJsonString(deviceId) +
+         "\",\"temperatureC\":" + thermocoupleOne +
+         ",\"sensor\":\"MAX6675\",\"sensors\":{\"thermocouples\":[{\"id\":\"max6675-1\",\"temperatureC\":" +
+         thermocoupleOne + "},{\"id\":\"max6675-2\",\"temperatureC\":" +
+         thermocoupleTwo + "}],\"level\":{\"sensor\":\"AJ-SR04M\",\"distanceMm\":" +
+         std::to_string(levelDistanceMm) + "}}}";
+}
