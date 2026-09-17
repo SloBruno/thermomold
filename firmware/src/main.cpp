@@ -219,7 +219,8 @@ void reportTemperature() {
 
 void setup() {
   Serial.begin(115200);
-  if (!LittleFS.begin(false)) Serial.println("LittleFS unavailable; settings will not persist.");
+  // Format a blank/corrupted LittleFS partition so portal settings persist after reset.
+  if (!LittleFS.begin(true)) Serial.println("LittleFS unavailable; settings will not persist.");
   loadConfig();
   provisionWiFiAndSettings();
   configureSensor();
