@@ -7,3 +7,6 @@ server/dist/
 !*.env.example
 *.log
 .DS_Store
+
+# Local git worktrees
+.worktrees/
