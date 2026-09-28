@@ -3,6 +3,7 @@
 
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
+#include "actuators.h"
 
 void test_payload_contains_the_required_exact_contract_fields() {
   const std::string payload = buildTelemetryPayload("press-01", 123.45);
@@ -48,6 +49,51 @@ void test_minimum_telemetry_interval_is_half_a_second() {
   TEST_ASSERT_EQUAL_UINT32(500, minimumTelemetryIntervalMs());
 }
 
+void test_flow_converts_pulses_in_a_window_to_liters_per_minute() {
+  // ZJ-S201: 7.5 pulses per second per L/min.
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, flowLitersPerMinute(15, 1000));
+  TEST_ASSERT_EQUAL_FLOAT(2.0f, flowLitersPerMinute(7, 467) > 1.99f ? 2.0f : 0.0f);
+  TEST_ASSERT_EQUAL_FLOAT(0.0f, flowLitersPerMinute(10, 0));
+}
+
+void test_flow_pulses_accumulate_to_liters() {
+  // 450 pulses per liter (7.5 pulses/s per L/min * 60 s).
+  TEST_ASSERT_EQUAL_FLOAT(1.0f, litersFromPulses(450));
+}
+
+void test_pump_command_expires_after_timeout_including_millis_rollover() {
+  TEST_ASSERT_FALSE(pumpCommandExpired(1000, 3999, 3000));
+  TEST_ASSERT_TRUE(pumpCommandExpired(1000, 4001, 3000));
+  TEST_ASSERT_FALSE(pumpCommandExpired(0xFFFFFF00UL, 0x00000100UL, 3000));
+}
+
+void test_parse_pump_command_reads_both_pumps_from_response() {
+  PumpCommand command = parsePumpCommand(
+      "{\"accepted\":true,\"commands\":{\"pumps\":{\"pump1\":true,\"pump2\":false}}}");
+  TEST_ASSERT_TRUE(command.valid);
+  TEST_ASSERT_TRUE(command.pump1);
+  TEST_ASSERT_FALSE(command.pump2);
+}
+
+void test_parse_pump_command_fails_safe_when_missing_or_garbled() {
+  PumpCommand missing = parsePumpCommand("{\"accepted\":true}");
+  TEST_ASSERT_FALSE(missing.valid);
+  TEST_ASSERT_FALSE(missing.pump1);
+  TEST_ASSERT_FALSE(missing.pump2);
+
+  PumpCommand partial = parsePumpCommand("{\"commands\":{\"pumps\":{\"pump1\":true}}}");
+  TEST_ASSERT_FALSE(partial.valid);
+  TEST_ASSERT_FALSE(partial.pump1);
+}
+
+void test_full_payload_appends_flow_and_actual_pump_state() {
+  const std::string payload = buildFullTelemetryPayload("press-01", 123.45, 126.5, 350, 2.4, 12.75, true, false);
+
+  TEST_ASSERT_EQUAL_STRING(
+      "{\"deviceId\":\"press-01\",\"temperatureC\":123.45,\"sensor\":\"MAX6675\",\"sensors\":{\"thermocouples\":[{\"id\":\"max6675-1\",\"temperatureC\":123.45},{\"id\":\"max6675-2\",\"temperatureC\":126.5}],\"level\":{\"sensor\":\"AJ-SR04M\",\"distanceMm\":350},\"flow\":{\"sensor\":\"ZJ-S201\",\"litersPerMinute\":2.4,\"totalLiters\":12.75}},\"pumps\":{\"pump1\":true,\"pump2\":false}}",
+      payload.c_str());
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_payload_contains_the_required_exact_contract_fields);
@@ -57,5 +103,11 @@ int main(int, char **) {
   RUN_TEST(test_secure_endpoint_detection_accepts_only_https_scheme);
   RUN_TEST(test_default_endpoint_targets_the_public_thermomold_backend);
   RUN_TEST(test_minimum_telemetry_interval_is_half_a_second);
+  RUN_TEST(test_flow_converts_pulses_in_a_window_to_liters_per_minute);
+  RUN_TEST(test_flow_pulses_accumulate_to_liters);
+  RUN_TEST(test_pump_command_expires_after_timeout_including_millis_rollover);
+  RUN_TEST(test_parse_pump_command_reads_both_pumps_from_response);
+  RUN_TEST(test_parse_pump_command_fails_safe_when_missing_or_garbled);
+  RUN_TEST(test_full_payload_appends_flow_and_actual_pump_state);
   return UNITY_END();
 }

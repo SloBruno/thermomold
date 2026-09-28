@@ -9,6 +9,7 @@
 #include <WiFiManager.h>
 #include <cmath>
 
+#include "actuators.h"
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
 
@@ -21,6 +22,12 @@ constexpr uint8_t kThermocoupleTwoCsPin = 23;
 constexpr uint8_t kThermocoupleTwoSoPin = 22;
 constexpr uint8_t kLevelTriggerPin = 25;
 constexpr uint8_t kLevelEchoPin = 26;
+constexpr uint8_t kPump1RelayPin = 19;  // HW-383 IN1
+constexpr uint8_t kPump2RelayPin = 33;  // HW-383 IN2
+constexpr uint8_t kFlowSensorPin = 34;  // ZJ-S201 signal via 10k/20k divider
+// HW-383 variants exist as active-high or active-low; flip this if a relay
+// clicks ON at boot or the LEDs are inverted during the bench test.
+constexpr uint8_t kRelayActiveLevel = HIGH;
 constexpr unsigned long kLevelEchoTimeoutUs = 30000;
 constexpr unsigned long kDefaultReportIntervalMs = 500;
 constexpr unsigned long kReconnectIntervalMs = 10000;
@@ -44,6 +51,70 @@ unsigned long nextReportAt = 0;
 unsigned long nextRetryAt = 0;
 unsigned long retryDelayMs = kInitialRetryDelayMs;
 unsigned long lastReconnectAttemptAt = 0;
+
+bool pump1On = false;
+bool pump2On = false;
+uint32_t lastPumpCommandAt = 0;
+bool hasPumpCommand = false;
+
+volatile uint32_t flowPulseCount = 0;
+uint32_t flowTotalPulses = 0;
+uint32_t flowWindowStartedAt = 0;
+float flowLpm = 0.0f;
+
+void IRAM_ATTR onFlowPulse() {
+  flowPulseCount = flowPulseCount + 1;
+}
+
+uint8_t relayLevel(bool on) {
+  return on ? kRelayActiveLevel : (kRelayActiveLevel == HIGH ? LOW : HIGH);
+}
+
+void applyPumps(bool nextPump1, bool nextPump2) {
+  if (nextPump1 != pump1On || nextPump2 != pump2On) {
+    Serial.printf("Pumps -> pump1=%s pump2=%s\n", nextPump1 ? "ON" : "OFF",
+                  nextPump2 ? "ON" : "OFF");
+  }
+  pump1On = nextPump1;
+  pump2On = nextPump2;
+  digitalWrite(kPump1RelayPin, relayLevel(pump1On));
+  digitalWrite(kPump2RelayPin, relayLevel(pump2On));
+}
+
+// Called first in setup(): relays must be inactive before the Wi-Fi portal,
+// which can block for up to 3 minutes.
+void configurePumpsOff() {
+  digitalWrite(kPump1RelayPin, relayLevel(false));
+  digitalWrite(kPump2RelayPin, relayLevel(false));
+  pinMode(kPump1RelayPin, OUTPUT);
+  pinMode(kPump2RelayPin, OUTPUT);
+  applyPumps(false, false);
+}
+
+void enforcePumpFailSafe() {
+  if (!pump1On && !pump2On) return;
+  const bool wifiLost = WiFi.status() != WL_CONNECTED;
+  const bool expired = !hasPumpCommand ||
+                       pumpCommandExpired(lastPumpCommandAt, millis(), kPumpCommandTimeoutMs);
+  if (wifiLost || expired) {
+    Serial.println(wifiLost ? "Wi-Fi lost; pumps OFF (fail-safe)."
+                            : "No backend command for 3 s; pumps OFF (fail-safe).");
+    applyPumps(false, false);
+  }
+}
+
+void updateFlow() {
+  const uint32_t now = millis();
+  const uint32_t windowMs = now - flowWindowStartedAt;
+  if (windowMs < 1000) return;
+  noInterrupts();
+  const uint32_t pulses = flowPulseCount;
+  flowPulseCount = 0;
+  interrupts();
+  flowTotalPulses += pulses;
+  flowLpm = flowLitersPerMinute(pulses, windowMs);
+  flowWindowStartedAt = now;
+}
 
 String defaultDeviceId() {
   return "thermomold-" + String(static_cast<uint32_t>(ESP.getEfuseMac()), HEX);
@@ -125,6 +196,9 @@ void configureSensor() {
   pinMode(kLevelTriggerPin, OUTPUT);
   digitalWrite(kLevelTriggerPin, LOW);
   pinMode(kLevelEchoPin, INPUT);
+  pinMode(kFlowSensorPin, INPUT);  // GPIO34 is input-only; divider provides the level.
+  attachInterrupt(digitalPinToInterrupt(kFlowSensorPin), onFlowPulse, FALLING);
+  flowWindowStartedAt = millis();
   delay(250);  // MAX6675 conversion time after startup.
 }
 
@@ -159,10 +233,21 @@ bool postPayload(const String &payload) {
     http.addHeader("Content-Type", "application/json");
     if (!config.deviceKey.isEmpty()) http.addHeader("X-Device-Key", config.deviceKey);
     const int status = http.POST(payload);
+    const String body = (status >= 200 && status < 300) ? http.getString() : String();
     http.end();
-    if (status >= 200 && status < 300) return true;
-    Serial.printf("Telemetry POST failed with HTTP status %d\n", status);
-    return false;
+    if (status < 200 || status >= 300) {
+      Serial.printf("Telemetry POST failed with HTTP status %d\n", status);
+      return false;
+    }
+    const PumpCommand command = parsePumpCommand(std::string(body.c_str()));
+    if (command.valid) {
+      lastPumpCommandAt = millis();
+      hasPumpCommand = true;
+      applyPumps(command.pump1, command.pump2);
+    } else {
+      applyPumps(false, false);  // Backend without pump commands: stay safe.
+    }
+    return true;
   };
 
   WiFiClientSecure secureClient;
@@ -203,12 +288,14 @@ void reportTemperature() {
     Serial.println("AJ-SR04M echo timed out; measurement discarded.");
     return;
   }
-  pendingPayload = buildMultiSensorTelemetryPayload(std::string(config.deviceId.c_str()),
-                                                     thermocoupleOneC, thermocoupleTwoC,
-                                                     levelDistanceMm).c_str();
+  pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()),
+                                             thermocoupleOneC, thermocoupleTwoC,
+                                             levelDistanceMm, flowLpm,
+                                             litersFromPulses(flowTotalPulses), pump1On,
+                                             pump2On).c_str();
   if (postPayload(pendingPayload)) {
-    Serial.printf("Telemetry posted: %.2f C, %.2f C, %lu mm\n", thermocoupleOneC,
-                  thermocoupleTwoC, levelDistanceMm);
+    Serial.printf("Telemetry posted: %.2f C, %.2f C, %lu mm, %.2f L/min\n", thermocoupleOneC,
+                  thermocoupleTwoC, levelDistanceMm, flowLpm);
     pendingPayload = "";
     retryDelayMs = kInitialRetryDelayMs;
   } else {
@@ -218,6 +305,7 @@ void reportTemperature() {
 }  // namespace
 
 void setup() {
+  configurePumpsOff();
   Serial.begin(115200);
   // Format a blank/corrupted LittleFS partition so portal settings persist after reset.
   if (!LittleFS.begin(true)) Serial.println("LittleFS unavailable; settings will not persist.");
@@ -229,6 +317,8 @@ void setup() {
 
 void loop() {
   ensureWiFi();
+  updateFlow();
+  enforcePumpFailSafe();
   const unsigned long now = millis();
   if (!pendingPayload.isEmpty() && now >= nextRetryAt) {
     if (postPayload(pendingPayload)) {

@@ -1,3 +1,5 @@
+import type { PumpState } from './pumps.js'
+
 export const K_TYPE_MIN_C = -200
 export const K_TYPE_MAX_C = 1350
 
@@ -11,9 +13,16 @@ export interface LevelReading {
   distanceMm: number
 }
 
+export interface FlowReading {
+  sensor: 'ZJ-S201'
+  litersPerMinute: number
+  totalLiters: number
+}
+
 export interface MultiSensorReadings {
   thermocouples: [ThermocoupleReading, ThermocoupleReading]
   level: LevelReading
+  flow?: FlowReading
 }
 
 export interface TelemetrySample {
@@ -22,6 +31,7 @@ export interface TelemetrySample {
   observedAt: string
   sensor: 'MAX6675'
   sensors?: MultiSensorReadings
+  pumps?: PumpState
   receivedAt: string
 }
 
@@ -35,13 +45,14 @@ type TelemetryInput = {
   observedAt?: unknown
   sensor?: unknown
   sensors?: unknown
+  pumps?: unknown
 }
 
 type NormalizedTelemetry = Omit<TelemetrySample, 'receivedAt'>
 
 function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReadings } | { ok: false; error: string } {
   if (typeof value !== 'object' || value === null) return { ok: false, error: 'sensors inválido' }
-  const sensors = value as { thermocouples?: unknown; level?: unknown }
+  const sensors = value as { thermocouples?: unknown; level?: unknown; flow?: unknown }
   if (!Array.isArray(sensors.thermocouples) || sensors.thermocouples.length !== 2) {
     return { ok: false, error: 'sensors.thermocouples deve conter os dois MAX6675' }
   }
@@ -61,13 +72,35 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
   if (level.sensor !== 'AJ-SR04M' || typeof level.distanceMm !== 'number' || !Number.isFinite(level.distanceMm)
     || level.distanceMm <= 0) return { ok: false, error: 'leitura AJ-SR04M inválida' }
 
+  let flow: FlowReading | undefined
+  if (sensors.flow !== undefined) {
+    const item = sensors.flow as { sensor?: unknown; litersPerMinute?: unknown; totalLiters?: unknown } | null
+    const isValidAmount = (amount: unknown): amount is number =>
+      typeof amount === 'number' && Number.isFinite(amount) && amount >= 0
+    if (typeof item !== 'object' || item === null || item.sensor !== 'ZJ-S201'
+      || !isValidAmount(item.litersPerMinute) || !isValidAmount(item.totalLiters)) {
+      return { ok: false, error: 'leitura ZJ-S201 inválida' }
+    }
+    flow = { sensor: 'ZJ-S201', litersPerMinute: item.litersPerMinute, totalLiters: item.totalLiters }
+  }
+
   return {
     ok: true,
     value: {
       thermocouples: readings as [ThermocoupleReading, ThermocoupleReading],
       level: { sensor: 'AJ-SR04M', distanceMm: level.distanceMm },
+      ...(flow ? { flow } : {}),
     },
   }
+}
+
+function normalizePumps(value: unknown): { ok: true; value: PumpState } | { ok: false; error: string } {
+  const pumps = value as { pump1?: unknown; pump2?: unknown } | null
+  if (typeof pumps !== 'object' || pumps === null
+    || typeof pumps.pump1 !== 'boolean' || typeof pumps.pump2 !== 'boolean') {
+    return { ok: false, error: 'pumps deve informar pump1 e pump2 como true ou false' }
+  }
+  return { ok: true, value: { pump1: pumps.pump1, pump2: pumps.pump2 } }
 }
 
 export function normalizeTelemetry(payload: TelemetryInput):
@@ -97,6 +130,9 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'temperatureC deve corresponder ao max6675-1' }
   }
 
+  const pumps = payload.pumps === undefined ? undefined : normalizePumps(payload.pumps)
+  if (pumps && !pumps.ok) return pumps
+
   return {
     ok: true,
     value: {
@@ -105,6 +141,7 @@ export function normalizeTelemetry(payload: TelemetryInput):
       observedAt: payload.observedAt ?? new Date().toISOString(),
       sensor: 'MAX6675',
       ...(sensors ? { sensors: sensors.value } : {}),
+      ...(pumps ? { pumps: pumps.value } : {}),
     },
   }
 }

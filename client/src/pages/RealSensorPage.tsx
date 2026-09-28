@@ -11,6 +11,12 @@ type LevelReading = {
   distanceMm: number
 }
 
+type FlowReading = {
+  sensor: 'ZJ-S201'
+  litersPerMinute: number
+  totalLiters: number
+}
+
 type TelemetrySample = {
   deviceId: string
   temperatureC: number
@@ -19,7 +25,9 @@ type TelemetrySample = {
   sensors?: {
     thermocouples: [ThermocoupleReading, ThermocoupleReading]
     level: LevelReading
+    flow?: FlowReading
   }
+  pumps?: { pump1: boolean; pump2: boolean }
   receivedAt: string
 }
 
@@ -118,6 +126,27 @@ export default function RealSensorPage() {
                 <p className="text-sm font-medium text-neutral-500">Nível (AJ-SR04M)</p>
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
                   {sample.sensors?.level.distanceMm ?? '—'} mm
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Vazão (ZJ-S201)</p>
+                <p className="text-3xl font-bold tabular-nums text-neutral-900">
+                  {sample.sensors?.flow ? `${sample.sensors.flow.litersPerMinute.toFixed(2)} L/min` : '—'}
+                </p>
+                {sample.sensors?.flow && (
+                  <p className="text-xs text-neutral-500">Total: {sample.sensors.flow.totalLiters.toFixed(2)} L</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Bomba 1</p>
+                <p className="text-3xl font-bold text-neutral-900">
+                  {sample.pumps === undefined ? '—' : sample.pumps.pump1 ? 'Ligada' : 'Desligada'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Bomba 2</p>
+                <p className="text-3xl font-bold text-neutral-900">
+                  {sample.pumps === undefined ? '—' : sample.pumps.pump2 ? 'Ligada' : 'Desligada'}
                 </p>
               </div>
             </div>

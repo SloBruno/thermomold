@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import type { SimulatorState, DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from '../../shared/types';
 import { createTelemetryStore, normalizeTelemetry } from './telemetry.js';
+import { createPumpStore } from './pumps.js';
 
 const CP_WATER = 4.18;
 const MOLD_TARGET_TEMP = 80;
@@ -33,6 +34,8 @@ const telemetryStaleAfterMs = Number.isFinite(configuredStaleAfterMs) && configu
   : 30_000;
 const telemetryDeviceKey = process.env.TELEMETRY_DEVICE_KEY;
 const telemetryStore = createTelemetryStore(telemetryStaleAfterMs);
+// Desired pump state; always starts OFF so a backend restart never turns pumps on.
+const pumpStore = createPumpStore();
 
 let state: SimulatorState = {
   ambientTemp: 25,
@@ -377,6 +380,7 @@ io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.emit('telemetry:data', telemetryStore.getStatus());
+  socket.emit('pumps:data', pumpStore.get());
 
   const data = calculateDashboardData(state);
   socket.emit('dashboard:data', data);
@@ -456,6 +460,20 @@ app.get('/api/telemetry', (_req, res) => {
   res.json(telemetryStore.getStatus());
 });
 
+app.get('/api/pumps', (_req, res) => {
+  res.json(pumpStore.get());
+});
+
+app.post('/api/pumps', (req, res) => {
+  const result = pumpStore.set(req.body);
+  if (!result.ok) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  io.emit('pumps:data', result.value);
+  res.json(result.value);
+});
+
 app.post('/api/telemetry', (req, res) => {
   if (telemetryDeviceKey && req.get('X-Device-Key') !== telemetryDeviceKey) {
     res.status(401).json({ error: 'não autorizado' });
@@ -471,7 +489,8 @@ app.post('/api/telemetry', (req, res) => {
   const sample = telemetryStore.save(normalized.value);
   const status = telemetryStore.getStatus();
   io.emit('telemetry:data', status);
-  res.status(202).json({ accepted: true, sample });
+  // The ESP32 applies these commands; missing/failed responses make it turn pumps off.
+  res.status(202).json({ accepted: true, sample, commands: { pumps: pumpStore.get() } });
 });
 
 app.post('/simulate', (req, res) => {

@@ -1,0 +1,804 @@
+(kicad_sch (version 20221206) (generator eeschema)
+  (uuid 5b8142dd-14cb-460b-823a-1e2e8f0eee55)
+  (paper "A4")
+  (title_block
+    (title "ThermoMold Wiring Schematic")
+    (comment 1 "ESP32, MAX6675, AJ-SR04M, HW-383 and 2 pumps")
+    (comment 2 "Visible wiring diagram — KiCad 7")
+  )
+  (lib_symbols)
+
+  (text "Wiring schematic • all grounds common • ESP32 GPIO is 3.3 V only" (at 15 16 0)
+    (effects (font (size 1.2 1.2)) (justify left bottom))
+    (uuid 1f84b365-771a-41b0-b90f-8afad52de671)
+  )
+
+  (polyline (pts (xy 8 19) (xy 289 19))
+    (stroke (width 0.7) (type solid))
+    (uuid 46af0d30-a058-46b7-bc42-b4e5080c596c)
+  )
+
+  (text "POWER DISTRIBUTION" (at 12 27 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 7942646a-30be-43a6-9e53-9f3d9b579f90)
+  )
+
+  (polyline (pts (xy 10 30) (xy 38 30) (xy 38 55) (xy 10 55) (xy 10 30))
+    (stroke (width 0.45) (type solid))
+    (uuid d53812c7-8066-4a66-b124-705347d6a035)
+  )
+
+  (text "J1" (at 13 36 0)
+    (effects (font (size 1.5 1.5) (thickness 0.3) bold) (justify left bottom))
+    (uuid 6d9bedc1-2713-4271-893b-81a287e70e68)
+  )
+
+  (text "5 V / 6 A SOURCE" (at 13 40 0)
+    (effects (font (size 1.25 1.25) (thickness 0.3) bold) (justify left bottom))
+    (uuid 4fd84437-3d94-4558-9795-a46ce88076b4)
+  )
+
+  (text "+5V" (at 13 46 0)
+    (effects (font (size 1.2 1.2)) (justify left bottom))
+    (uuid 544442aa-4015-4110-9f73-895c978af4ea)
+  )
+
+  (text "GND" (at 13 51 0)
+    (effects (font (size 1.2 1.2)) (justify left bottom))
+    (uuid 65e460bb-1745-447c-8230-cdc5405c7693)
+  )
+
+  (polyline (pts (xy 50 30) (xy 82 30) (xy 82 55) (xy 50 55) (xy 50 30))
+    (stroke (width 0.45) (type solid))
+    (uuid 64c7a444-2528-4fcf-8616-9a8053bbdeac)
+  )
+
+  (text "U1" (at 53 36 0)
+    (effects (font (size 1.5 1.5) (thickness 0.3) bold) (justify left bottom))
+    (uuid c5476442-c078-4848-854e-ed7ebc4e4f77)
+  )
+
+  (text "5 V → 3.3 V BUCK" (at 53 40 0)
+    (effects (font (size 1.25 1.25) (thickness 0.3) bold) (justify left bottom))
+    (uuid f1db93aa-5e84-4a5c-804b-281d1b8a9a4e)
+  )
+
+  (text "IN +5V / GND" (at 53 46 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 72cc5058-1a4f-4f4c-83f1-e953487cd01b)
+  )
+
+  (text "OUT +3V3 / GND" (at 53 51 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 51814c1a-73e5-4550-8f45-fcdb973f46bf)
+  )
+
+  (wire (pts (xy 38 46) (xy 50 46))
+    (stroke (width 0.7) (type solid))
+    (uuid b21e8b4e-da47-4bf6-b304-3a21e23784bd)
+  )
+
+  (text "+5V" (at 40 44.5 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid adb88879-b59b-4ebb-89d4-341d351345d6)
+  )
+
+  (wire (pts (xy 38 51) (xy 50 51))
+    (stroke (width 0.5) (type solid))
+    (uuid 9c3191af-5196-42c6-98ff-00c75f6858da)
+  )
+
+  (wire (pts (xy 82 46) (xy 94 46))
+    (stroke (width 0.7) (type solid))
+    (uuid 1ba547ec-1b4b-4ab9-b28a-58c6c9620fc9)
+  )
+
+  (text "+3V3 RAIL" (at 84 44.5 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid 09dac1fd-07de-48ce-aedc-cc072800d15d)
+  )
+
+  (wire (pts (xy 82 51) (xy 94 51))
+    (stroke (width 0.5) (type solid))
+    (uuid a546790c-e068-4203-b778-ebd55a670a31)
+  )
+
+  (wire (pts (xy 43 46) (xy 43 106))
+    (stroke (width 0.55) (type solid))
+    (uuid cdc49180-f4dc-4952-870d-05f19390d58a)
+  )
+
+  (wire (pts (xy 43 106) (xy 190 106))
+    (stroke (width 0.55) (type solid))
+    (uuid 9eeee3f8-058b-4fbd-b6f5-f6a6c5dd45a0)
+  )
+
+  (text "+5V BUS" (at 45 104.5 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid 1cc0e510-e31d-4dde-9484-bd62c345e85d)
+  )
+
+  (wire (pts (xy 88 46) (xy 88 100))
+    (stroke (width 0.55) (type solid))
+    (uuid 05f13b96-bc20-4675-b4f7-8ddcb1c1244f)
+  )
+
+  (wire (pts (xy 88 100) (xy 100 100))
+    (stroke (width 0.55) (type solid))
+    (uuid 8223f723-6952-423a-9958-4ecdef7644e8)
+  )
+
+  (text "+3V3" (at 89 98.5 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid 447478e0-80ea-44e2-a8fa-de926c9b1cd8)
+  )
+
+  (text "ESP32 DEVKIT HEADERS" (at 110 27 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 13569247-ae91-4cad-a793-6635b2eb529a)
+  )
+
+  (polyline (pts (xy 105 30) (xy 153 30) (xy 153 91) (xy 105 91) (xy 105 30))
+    (stroke (width 0.6) (type solid))
+    (uuid d130ca32-1ea1-4ce3-9a29-87dac652fc68)
+  )
+
+  (text "J2 / J3" (at 121 36 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 023e0c1a-ffb3-40f6-8544-26cd58aeb77e)
+  )
+
+  (text "ESP32 DEVKIT" (at 114 41 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 2929ecee-f557-4409-bb71-e77b7af99025)
+  )
+
+  (text "3V3" (at 109 48 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid 44a38318-4bef-488b-b4c6-b2b3be00b6ac)
+  )
+
+  (text "GND" (at 109 53 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid be037081-09d5-4ec4-ba3e-2c5fbcc4a81f)
+  )
+
+  (wire (pts (xy 100 48) (xy 105 48))
+    (stroke (width 0.45) (type solid))
+    (uuid d3786180-b4a0-4530-9be3-b12c379fd9c5)
+  )
+
+  (wire (pts (xy 100 53) (xy 105 53))
+    (stroke (width 0.45) (type solid))
+    (uuid 86426491-97de-4f56-b3e5-30de7418e1a2)
+  )
+
+  (text "GPIO32  MAX1 SCK" (at 109 59 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid fb937b88-96bf-4014-8441-5f706734d974)
+  )
+
+  (text "GPIO21  MAX1 CS" (at 109 64 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 812e2c9d-85d2-4848-9709-e70f9884d1d8)
+  )
+
+  (text "GPIO27  MAX1 SO" (at 109 69 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 2d44f103-dca7-4132-91c4-5b2e90be832e)
+  )
+
+  (text "GPIO18  MAX2 SCK" (at 109 74 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid ba220313-f428-4625-8b31-a569ddc9329d)
+  )
+
+  (text "GPIO23  MAX2 CS" (at 109 79 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid f20b7344-0835-4481-9fbc-78552cdaf8f7)
+  )
+
+  (text "GPIO22  MAX2 SO" (at 109 84 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid c0f7c627-7ebe-45e1-b452-1febf2d3a4da)
+  )
+
+  (text "GPIO25  AJ-SR04M TRIG" (at 162 47 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 077391f0-13b0-4970-abc9-08f8f6db172f)
+  )
+
+  (text "GPIO26  ECHO (3.3V)" (at 162 53 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 2a4e61e5-b0d0-442e-ae16-320e282f1f02)
+  )
+
+  (text "GPIO19  RELAY IN1" (at 162 58.7 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid a4e4cbe5-1a8d-4e2a-819a-97e85dfd5d12)
+  )
+
+  (text "GPIO33  RELAY IN2" (at 162 64.7 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid a1a14fe6-6cd1-4bc8-b487-223089f65552)
+  )
+
+  (wire (pts (xy 153 59) (xy 160 59))
+    (stroke (width 0.25) (type solid))
+    (uuid a46f0f36-2190-47d9-90ad-09204b066ff9)
+  )
+
+  (wire (pts (xy 153 64) (xy 160 64))
+    (stroke (width 0.25) (type solid))
+    (uuid c355e1cc-05ae-42b1-a451-116d4e4b3a39)
+  )
+
+  (wire (pts (xy 153 69) (xy 160 69))
+    (stroke (width 0.25) (type solid))
+    (uuid 5ca796f2-7bad-454c-8cf4-002f1ff152ef)
+  )
+
+  (wire (pts (xy 153 74) (xy 160 74))
+    (stroke (width 0.25) (type solid))
+    (uuid e6b03aa7-86b3-4e82-b5c9-bfdaa867e8b9)
+  )
+
+  (wire (pts (xy 153 79) (xy 160 79))
+    (stroke (width 0.25) (type solid))
+    (uuid 68a77ded-29df-41fb-8948-6f4bc43c3d02)
+  )
+
+  (wire (pts (xy 153 84) (xy 160 84))
+    (stroke (width 0.25) (type solid))
+    (uuid 4e20db23-7908-4ff6-af27-f0ac7c067fc4)
+  )
+
+  (wire (pts (xy 153 48) (xy 160 48))
+    (stroke (width 0.25) (type solid))
+    (uuid 5baec71c-83d7-4e64-9b85-ae5e28ec054a)
+  )
+
+  (wire (pts (xy 153 54) (xy 160 54))
+    (stroke (width 0.25) (type solid))
+    (uuid 081ee9ba-0223-4e3e-a283-369457994448)
+  )
+
+  (wire (pts (xy 153 60) (xy 160 60))
+    (stroke (width 0.25) (type solid))
+    (uuid eb79d714-ffd8-4d47-b746-54e26aaa1bb6)
+  )
+
+  (wire (pts (xy 153 66) (xy 160 66))
+    (stroke (width 0.25) (type solid))
+    (uuid 26dbc8b8-223f-4ff9-9ddc-df10dc8eb4a0)
+  )
+
+  (text "THERMOCOUPLE INTERFACES (3.3 V)" (at 12 66 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 10627718-0587-404d-bb39-aa2bfe251288)
+  )
+
+  (polyline (pts (xy 12 70) (xy 48 70) (xy 48 96) (xy 12 96) (xy 12 70))
+    (stroke (width 0.45) (type solid))
+    (uuid dd3868e1-004a-497c-b000-f7d644e31122)
+  )
+
+  (text "J4 — MAX6675 #1" (at 15 76 0)
+    (effects (font (size 1.45 1.45) (thickness 0.3) bold) (justify left bottom))
+    (uuid 9b479657-0d01-4520-919b-f3732835a898)
+  )
+
+  (text "VCC +3V3   GND" (at 15 81 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 542a19bb-a960-46ab-b776-795aa7f2cb1b)
+  )
+
+  (text "SCK → GPIO32" (at 15 85 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid a2c144ee-ef10-4940-a714-caab0a3f925f)
+  )
+
+  (text "CS  → GPIO21" (at 15 89 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 7b0c976f-97c2-4f19-a39e-ad7c0830ee88)
+  )
+
+  (text "SO  → GPIO27" (at 15 93 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 8ec0f81a-bd1b-4fd6-affc-1f9697d68d4e)
+  )
+
+  (polyline (pts (xy 55 70) (xy 91 70) (xy 91 96) (xy 55 96) (xy 55 70))
+    (stroke (width 0.45) (type solid))
+    (uuid 6edb1dbf-ff26-42f0-a3ed-3303effe302a)
+  )
+
+  (text "J5 — MAX6675 #2" (at 58 76 0)
+    (effects (font (size 1.45 1.45) (thickness 0.3) bold) (justify left bottom))
+    (uuid 2d3aa247-6d9e-4241-8970-6d269ad13428)
+  )
+
+  (text "VCC +3V3   GND" (at 58 81 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 7788a13d-0a49-4c61-972c-aa37e94f0f6c)
+  )
+
+  (text "SCK → GPIO18" (at 58 85 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 2b18e2d1-1e4e-42ac-94a3-ce855de33b72)
+  )
+
+  (text "CS  → GPIO23" (at 58 89 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 2e876392-c95c-4392-81cb-82ac03afee27)
+  )
+
+  (text "SO  → GPIO22" (at 58 93 0)
+    (effects (font (size 1.05 1.05)) (justify left bottom))
+    (uuid 45e08505-3f47-4a35-85cd-c36bf601c2aa)
+  )
+
+  (wire (pts (xy 30 70) (xy 30 62))
+    (stroke (width 0.35) (type solid))
+    (uuid 6491e4f0-5af6-4953-aabc-6af2d487cc6d)
+  )
+
+  (wire (pts (xy 30 62) (xy 100 62))
+    (stroke (width 0.35) (type solid))
+    (uuid 35072931-20e0-4c87-b8e3-e04afbc5154a)
+  )
+
+  (text "+3V3" (at 32 60.5 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 917bc3e1-2f02-44a3-bb03-e7b0d731daa0)
+  )
+
+  (wire (pts (xy 73 70) (xy 73 65))
+    (stroke (width 0.35) (type solid))
+    (uuid 74df14af-62b1-4658-b428-3d7ecfed028e)
+  )
+
+  (wire (pts (xy 73 65) (xy 100 65))
+    (stroke (width 0.35) (type solid))
+    (uuid d1c3a46f-70df-4f88-8fe4-1df786288f45)
+  )
+
+  (text "+3V3" (at 75 63.5 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid be58dec9-ee70-4c45-9f67-99bcf9975986)
+  )
+
+  (text "DISTANCE SENSOR (5 V) + 3.3 V ECHO DIVIDER" (at 12 115 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 669ec4b9-0909-4075-a5e6-b90fd07a9517)
+  )
+
+  (polyline (pts (xy 12 120) (xy 52 120) (xy 52 145) (xy 12 145) (xy 12 120))
+    (stroke (width 0.45) (type solid))
+    (uuid e3b42a96-8ea3-4a4d-8435-b63b640d3345)
+  )
+
+  (text "J6 — AJ-SR04M" (at 15 126 0)
+    (effects (font (size 1.45 1.45) (thickness 0.3) bold) (justify left bottom))
+    (uuid 9c0b6673-3097-4a7d-acf7-0ad534b1f4f8)
+  )
+
+  (text "VCC  +5V" (at 15 132 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid cbb400ac-a6b6-4e66-8c3a-4e2e275116f2)
+  )
+
+  (text "GND  GND" (at 15 136 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid c58e3ff3-34d1-4044-8d6f-d359ec6634ff)
+  )
+
+  (text "TRIG → GPIO25" (at 15 140 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 3518c414-2ce1-4e33-aa83-e9f2aa448daf)
+  )
+
+  (text "ECHO 5V" (at 15 144 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 70720120-c054-4713-a38d-d8cdba544597)
+  )
+
+  (wire (pts (xy 38 120) (xy 38 112))
+    (stroke (width 0.45) (type solid))
+    (uuid a5755c40-952a-4029-b4e8-cb1311e15bf1)
+  )
+
+  (wire (pts (xy 38 112) (xy 43 112))
+    (stroke (width 0.45) (type solid))
+    (uuid e05bf73f-c8ab-4c8d-bbeb-10c1a064029f)
+  )
+
+  (text "+5V" (at 39 110.5 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 45120761-4681-46b4-b27b-9096d4311182)
+  )
+
+  (text "ECHO 5V → R1" (at 54 135 0)
+    (effects (font (size 1.15 1.15) (thickness 0.3) bold) (justify left bottom))
+    (uuid 86a72d0d-03d5-48b4-b267-1a232cb6e825)
+  )
+
+  (wire (pts (xy 52 143) (xy 67 143))
+    (stroke (width 0.5) (type solid))
+    (uuid 694c7e90-4d2a-4556-ae29-13f672f76fc1)
+  )
+
+  (polyline (pts (xy 67 136) (xy 76 136) (xy 76 150) (xy 67 150) (xy 67 136))
+    (stroke (width 0.3) (type solid))
+    (uuid a2bf6653-435d-4e65-94da-bed2a169e7d4)
+  )
+
+  (text "R1" (at 68 140 0)
+    (effects (font (size 1.1 1.1) (thickness 0.3) bold) (justify left bottom))
+    (uuid f2912e14-2cc2-479b-b9e1-589eb1eb36a9)
+  )
+
+  (text "20k TOP" (at 68 145 0)
+    (effects (font (size 1.0 1.0)) (justify left bottom))
+    (uuid 05430c05-3857-4552-9ab7-8b6a2517eb19)
+  )
+
+  (wire (pts (xy 67 143) (xy 67 143))
+    (stroke (width 0.35) (type solid))
+    (uuid 11a3995b-0d09-464f-8ab1-e9eac1bc709c)
+  )
+
+  (wire (pts (xy 76 143) (xy 86 143))
+    (stroke (width 0.5) (type solid))
+    (uuid 8db19025-cef2-437c-ba78-7fbbe1e9ac02)
+  )
+
+  (polyline (pts (xy 86 146) (xy 95 146) (xy 95 160) (xy 86 160) (xy 86 146))
+    (stroke (width 0.3) (type solid))
+    (uuid dcb3e440-d62e-4080-9ca6-b6b5ac3bcd2a)
+  )
+
+  (text "R2" (at 87 151 0)
+    (effects (font (size 1.1 1.1) (thickness 0.3) bold) (justify left bottom))
+    (uuid 6b94fdae-cb3e-4afc-9139-fc51256dac2f)
+  )
+
+  (text "10k" (at 87 156 0)
+    (effects (font (size 1.0 1.0)) (justify left bottom))
+    (uuid 573bc193-57e9-40d5-ad44-90ab111894c0)
+  )
+
+  (wire (pts (xy 86 143) (xy 90 143))
+    (stroke (width 0.5) (type solid))
+    (uuid 02e0348a-935d-4ea0-acdb-851a9f976d5a)
+  )
+
+  (wire (pts (xy 90 143) (xy 90 146))
+    (stroke (width 0.5) (type solid))
+    (uuid 2f601fdf-e0f5-48d1-b799-8447b1abe5a0)
+  )
+
+  (wire (pts (xy 90 160) (xy 90 166))
+    (stroke (width 0.5) (type solid))
+    (uuid 48e4e237-112a-4a4e-a7d3-7a988d3cf328)
+  )
+
+  (text "GND" (at 87 168 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 00e88312-21e9-4035-be15-84008662719a)
+  )
+
+  (wire (pts (xy 86 143) (xy 100 143))
+    (stroke (width 0.45) (type solid))
+    (uuid 2f4eacfc-329a-46b0-b4f4-2fceec4d4ee8)
+  )
+
+  (wire (pts (xy 100 143) (xy 100 54))
+    (stroke (width 0.45) (type solid))
+    (uuid 7ecea176-86c0-41bb-a661-b93854724b63)
+  )
+
+  (wire (pts (xy 100 54) (xy 105 54))
+    (stroke (width 0.45) (type solid))
+    (uuid ecc67da4-c477-4907-bff0-9916b558606e)
+  )
+
+  (text "GPIO26 ECHO 3.3V" (at 77 141 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 6fbd0e6f-7d55-4309-9792-cfb3c4f1a2ec)
+  )
+
+  (wire (pts (xy 52 139) (xy 98 139))
+    (stroke (width 0.4) (type solid))
+    (uuid 30b92406-ac94-425f-8055-30d66cfa3bdb)
+  )
+
+  (wire (pts (xy 98 139) (xy 98 48))
+    (stroke (width 0.4) (type solid))
+    (uuid f8558bb7-6388-4186-be75-b05527c7e57f)
+  )
+
+  (wire (pts (xy 98 48) (xy 105 48))
+    (stroke (width 0.4) (type solid))
+    (uuid 43566fad-e948-4566-a35a-0a6106275e3a)
+  )
+
+  (text "GPIO25 TRIG" (at 54 137 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 92bea40d-2705-4876-8907-71c4be83e2d7)
+  )
+
+  (text "RELAY MODULE & PUMP LOADS" (at 175 27 0)
+    (effects (font (size 1.7 1.7) (thickness 0.3) bold) (justify left bottom))
+    (uuid 7d8c4fe1-4a99-4eff-b364-438aa97a8e7f)
+  )
+
+  (polyline (pts (xy 190 31) (xy 232 31) (xy 232 68) (xy 190 68) (xy 178 31))
+    (stroke (width 0.6) (type solid))
+    (uuid 5883030f-a8a0-4480-9916-abb7c6103308)
+  )
+
+  (text "J7 — HW-383 RELAY" (at 193 37 0)
+    (effects (font (size 1.45 1.45) (thickness 0.3) bold) (justify left bottom))
+    (uuid 990a9eef-e3fe-420d-9a87-0ce50c07831b)
+  )
+
+  (text "VCC +5V" (at 193 44 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 27872de1-0d23-460f-8953-6ba9f64eff32)
+  )
+
+  (text "GND" (at 193 49 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 82008da9-ea15-4bb6-8c7b-84ef141abfc4)
+  )
+
+  (text "IN1 ← GPIO19" (at 193 55 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 87e35e6b-1c9d-49e3-b2dc-b83beff79b3c)
+  )
+
+  (text "IN2 ← GPIO33" (at 193 66 0)
+    (effects (font (size 1.1 1.1)) (justify left bottom))
+    (uuid 1c3f8e25-ac7a-46d4-bc5d-0ebe782f3d37)
+  )
+
+  (wire (pts (xy 190 44) (xy 170 44))
+    (stroke (width 0.45) (type solid))
+    (uuid cdaabef3-803f-4fe9-a91e-4ee868db2e79)
+  )
+
+  (wire (pts (xy 170 44) (xy 170 106))
+    (stroke (width 0.45) (type solid))
+    (uuid 92ab0f5e-fdca-4af1-861e-be87d9d6a93f)
+  )
+
+  (text "+5V" (at 171 42.5 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid b9523974-3e34-4029-ba7b-4ba3789ebdb3)
+  )
+
+  (wire (pts (xy 160 60) (xy 190 60))
+    (stroke (width 0.45) (type solid))
+    (uuid 7c6d935f-e273-4a72-8be2-8fa6c5201f85)
+  )
+
+  (wire (pts (xy 160 66) (xy 190 66))
+    (stroke (width 0.45) (type solid))
+    (uuid ca53e6de-101f-45b0-acce-ee90c76c134a)
+  )
+
+  (text "CONTACTS: COM/NO SWITCH +5V" (at 178 77 0)
+    (effects (font (size 1.3 1.3) (thickness 0.3) bold) (justify left bottom))
+    (uuid c07f5007-e1fe-4d1b-819b-7ada80dd62d0)
+  )
+
+  (polyline (pts (xy 178 81) (xy 210 81) (xy 210 96) (xy 178 96) (xy 178 81))
+    (stroke (width 0.4) (type solid))
+    (uuid b03e2a66-b087-4b2b-97be-ac5d98f5fc6e)
+  )
+
+  (text "K1 COM ──/ ── NO" (at 181 89 0)
+    (effects (font (size 1.2 1.2) (thickness 0.3) bold) (justify left bottom))
+    (uuid fdba0448-f1a5-4150-a9d7-2a48e46e0621)
+  )
+
+  (polyline (pts (xy 178 104) (xy 210 104) (xy 210 119) (xy 178 119) (xy 178 104))
+    (stroke (width 0.4) (type solid))
+    (uuid c54f8b3f-7a90-4889-9d23-2f4372d41b23)
+  )
+
+  (text "K2 COM ──/ ── NO" (at 181 112 0)
+    (effects (font (size 1.2 1.2) (thickness 0.3) bold) (justify left bottom))
+    (uuid ec085611-4c63-4ec4-a3aa-d90a2796e22a)
+  )
+
+  (wire (pts (xy 170 106) (xy 170 88))
+    (stroke (width 0.55) (type solid))
+    (uuid b5521762-931b-47af-a0c1-2cb6e34af241)
+  )
+
+  (wire (pts (xy 170 88) (xy 178 88))
+    (stroke (width 0.55) (type solid))
+    (uuid abd8dc47-9b92-45e9-9393-ea86dafc9164)
+  )
+
+  (wire (pts (xy 170 106) (xy 170 111))
+    (stroke (width 0.55) (type solid))
+    (uuid f9f68b49-4446-45cd-9c6b-d0117960d612)
+  )
+
+  (wire (pts (xy 170 111) (xy 178 111))
+    (stroke (width 0.55) (type solid))
+    (uuid fc843d98-c8e5-4e45-9f7f-3ad2a90a75b5)
+  )
+
+  (wire (pts (xy 210 88) (xy 234 88))
+    (stroke (width 0.55) (type solid))
+    (uuid dd067fce-a6e6-4e15-b224-fc1fa8c10545)
+  )
+
+  (wire (pts (xy 210 111) (xy 234 111))
+    (stroke (width 0.55) (type solid))
+    (uuid aa4a6982-8f0d-48b1-9dee-7e076d05fae8)
+  )
+
+  (polyline (pts (xy 236 80) (xy 272 80) (xy 272 99) (xy 236 99) (xy 236 80))
+    (stroke (width 0.5) (type solid))
+    (uuid 441fd32f-3961-4e1f-99b1-3bf0bd4d0c9f)
+  )
+
+  (text "M1  PUMP 1" (at 239 86 0)
+    (effects (font (size 1.35 1.35) (thickness 0.3) bold) (justify left bottom))
+    (uuid ab37b09e-9c31-470a-971c-f0f89270638f)
+  )
+
+  (text "3–6 V DC" (at 239 92 0)
+    (effects (font (size 1.15 1.15)) (justify left bottom))
+    (uuid 6c7ce423-4d96-42d8-95cf-31f113867332)
+  )
+
+  (wire (pts (xy 234 88) (xy 236 88))
+    (stroke (width 0.55) (type solid))
+    (uuid 24065f4c-5a22-41f1-9021-2e3fd9dc290e)
+  )
+
+  (wire (pts (xy 254 99) (xy 254 103))
+    (stroke (width 0.5) (type solid))
+    (uuid c916a367-2cd4-4bda-8401-e684839618b3)
+  )
+
+  (text "GND" (at 250 105 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 750be38a-38be-4917-9e22-2839336205d2)
+  )
+
+  (polyline (pts (xy 236 103) (xy 272 103) (xy 272 122) (xy 236 122) (xy 236 103))
+    (stroke (width 0.5) (type solid))
+    (uuid 10063d3d-1f9c-414c-bb57-4a1726804671)
+  )
+
+  (text "M2  PUMP 2" (at 239 109 0)
+    (effects (font (size 1.35 1.35) (thickness 0.3) bold) (justify left bottom))
+    (uuid a1e29a29-e845-4c0a-a396-ffb0c8c020d2)
+  )
+
+  (text "3–6 V DC" (at 239 115 0)
+    (effects (font (size 1.15 1.15)) (justify left bottom))
+    (uuid f1535b30-6789-4b80-9029-84e98f0045bd)
+  )
+
+  (wire (pts (xy 234 111) (xy 236 111))
+    (stroke (width 0.55) (type solid))
+    (uuid 3fd0e481-2a44-4566-adb7-66a75b42cd13)
+  )
+
+  (wire (pts (xy 254 122) (xy 254 126))
+    (stroke (width 0.5) (type solid))
+    (uuid 42873192-4da4-45bd-93fd-bf04c5742ee4)
+  )
+
+  (text "GND" (at 250 128 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid e3ed5e6b-2fc2-4c13-900c-2f46549a1948)
+  )
+
+  (wire (pts (xy 228 84) (xy 228 96))
+    (stroke (width 0.4) (type solid))
+    (uuid af975106-a62c-4dd9-ae84-f9f7bc0f53e5)
+  )
+
+  (text "D1 1N400x" (at 217 82 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid 67c52ec3-4c43-4a36-94b0-9ad760140b6c)
+  )
+
+  (text "cathode to +" (at 214 98 0)
+    (effects (font (size 0.9 0.9)) (justify left bottom))
+    (uuid b7f92a3f-f2bf-42be-a8db-049eb0e7a335)
+  )
+
+  (wire (pts (xy 228 84) (xy 234 84))
+    (stroke (width 0.35) (type solid))
+    (uuid edb7761e-d251-40d3-bac9-014ddf024853)
+  )
+
+  (wire (pts (xy 234 84) (xy 234 88))
+    (stroke (width 0.35) (type solid))
+    (uuid f0ac28e4-9063-4a6b-a48d-6863b95a199c)
+  )
+
+  (wire (pts (xy 228 96) (xy 254 96))
+    (stroke (width 0.35) (type solid))
+    (uuid d0d75ef2-cec3-45fd-9989-4f0d852f9def)
+  )
+
+  (wire (pts (xy 254 96) (xy 254 99))
+    (stroke (width 0.35) (type solid))
+    (uuid 7f1b76c4-d97a-43a6-88ae-280f3efa8955)
+  )
+
+  (wire (pts (xy 228 107) (xy 228 119))
+    (stroke (width 0.4) (type solid))
+    (uuid 361a691e-b704-4a34-b62b-01fdddda6261)
+  )
+
+  (text "D2 1N400x" (at 217 105 0)
+    (effects (font (size 1.05 1.05) (thickness 0.3) bold) (justify left bottom))
+    (uuid cc13e8b7-f4f6-4dcb-a411-6771d7acd145)
+  )
+
+  (text "cathode to +" (at 214 121 0)
+    (effects (font (size 0.9 0.9)) (justify left bottom))
+    (uuid 626ab3d6-dc97-4478-abf7-42d4c6591f56)
+  )
+
+  (wire (pts (xy 228 107) (xy 234 107))
+    (stroke (width 0.35) (type solid))
+    (uuid 17aa806a-8287-48c4-8d0c-a746d4ca2fa6)
+  )
+
+  (wire (pts (xy 234 107) (xy 234 111))
+    (stroke (width 0.35) (type solid))
+    (uuid 5765f526-27d1-4574-88c6-52975d6846e9)
+  )
+
+  (wire (pts (xy 228 119) (xy 254 119))
+    (stroke (width 0.35) (type solid))
+    (uuid 9f341a40-0a97-4295-8c09-6130ac900118)
+  )
+
+  (wire (pts (xy 254 119) (xy 254 122))
+    (stroke (width 0.35) (type solid))
+    (uuid 42380b7c-ea16-4612-a143-ada7200d7c96)
+  )
+
+  (text "Flyback diode across each pump" (at 218 135 0)
+    (effects (font (size 1.1 1.1) (thickness 0.3) bold) (justify left bottom))
+    (uuid ca098fee-a878-4cc9-9d30-f2f197eeb67c)
+  )
+
+  (polyline (pts (xy 8 174) (xy 289 174))
+    (stroke (width 0.55) (type solid))
+    (uuid 888170b8-3ac4-41e0-9b7b-a09e8e147036)
+  )
+
+  (text "SAFETY NOTES" (at 12 181 0)
+    (effects (font (size 1.5 1.5) (thickness 0.3) bold) (justify left bottom))
+    (uuid 7a9e17dd-760b-4270-b37c-414ed6a86b3a)
+  )
+
+  (text "• Common ground for 5 V and 3.3 V systems.  • Do not apply 5 V directly to ESP32 GPIO.  • Verify pump current, relay ratings and fuse selection." (at 12 187 0)
+    (effects (font (size 1.15 1.15)) (justify left bottom))
+    (uuid c23414a0-ace8-4002-b126-2e5c1c481cb3)
+  )
+
+  (text "• MAX6675 ports: VCC / GND / SCK / CS / SO.  • AJ-SR04M echo is reduced from 5 V to 3.3 V by R1/R2." (at 12 192 0)
+    (effects (font (size 1.15 1.15)) (justify left bottom))
+    (uuid 90b190cd-b6b9-4f38-9a6b-2d641a52da8e)
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)

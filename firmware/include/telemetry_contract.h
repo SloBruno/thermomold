@@ -70,3 +70,20 @@ inline std::string buildMultiSensorTelemetryPayload(const std::string &deviceId,
          thermocoupleTwo + "}],\"level\":{\"sensor\":\"AJ-SR04M\",\"distanceMm\":" +
          std::to_string(levelDistanceMm) + "}}}";
 }
+
+inline std::string buildFullTelemetryPayload(const std::string &deviceId,
+                                             double thermocoupleOneC,
+                                             double thermocoupleTwoC,
+                                             unsigned long levelDistanceMm,
+                                             double flowLitersPerMinute,
+                                             double flowTotalLiters,
+                                             bool pump1On,
+                                             bool pump2On) {
+  std::string payload = buildMultiSensorTelemetryPayload(deviceId, thermocoupleOneC,
+                                                         thermocoupleTwoC, levelDistanceMm);
+  payload.resize(payload.size() - 2);  // Reopen "sensors" and the root object.
+  return payload + ",\"flow\":{\"sensor\":\"ZJ-S201\",\"litersPerMinute\":" +
+         formatTemperatureC(flowLitersPerMinute) + ",\"totalLiters\":" +
+         formatTemperatureC(flowTotalLiters) + "}},\"pumps\":{\"pump1\":" +
+         (pump1On ? "true" : "false") + ",\"pump2\":" + (pump2On ? "true" : "false") + "}}";
+}
