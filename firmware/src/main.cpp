@@ -464,8 +464,10 @@ void loop() {
   enforcePumpFailSafe();
   const unsigned long now = millis();
   if (now >= nextOtaCheckAt) {
-    nextOtaCheckAt = now + kOtaCheckIntervalMs;
     checkForOtaUpdate();
+    // NTP synchronization starts asynchronously. Retry soon until TLS has a valid clock;
+    // once valid, retain the normal 15-minute polling interval.
+    nextOtaCheckAt = now + (hasValidOtaTime() ? kOtaCheckIntervalMs : 30000UL);
   }
   if (!pendingPayload.isEmpty() && now >= nextRetryAt) {
     if (postPayload(pendingPayload)) {
