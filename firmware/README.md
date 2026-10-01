@@ -52,10 +52,10 @@ For repeatable setup, copy `data/config.example.json` to `data/config.json`, fil
 
 ## Runtime behavior
 
-- Either MAX6675 error/invalid temperature or an AJ-SR04M echo timeout discards the complete sample; no partial telemetry is posted.
+- Se um MAX6675 falhar ou produzir temperatura inválida, a amostra é descartada. AJ-SR04M indisponível não bloqueia a telemetria: ele aparece como indisponível, enquanto os termopares continuam sendo enviados.
 - Wi-Fi reconnection is attempted every 10 seconds while disconnected.
 - Failed non-2xx telemetry posts are retained and retried with exponential backoff from 2 to 60 seconds.
-- Normal measurement/reporting is every 30 seconds by default and configurable through the portal or local config.
+- A medição e publicação normais ocorrem a cada 500 ms.
 - The device key is not sent at all when it is blank.
 
 Run the host-side payload contract test with `platformio test -e native`.

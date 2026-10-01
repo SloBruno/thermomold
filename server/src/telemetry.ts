@@ -21,7 +21,7 @@ export interface FlowReading {
 
 export interface MultiSensorReadings {
   thermocouples: [ThermocoupleReading, ThermocoupleReading]
-  level: LevelReading
+  level?: LevelReading
   flow?: FlowReading
 }
 
@@ -67,10 +67,14 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
   })
   if (readings.some(reading => reading === null)) return { ok: false, error: 'leitura MAX6675 inválida' }
 
-  if (typeof sensors.level !== 'object' || sensors.level === null) return { ok: false, error: 'sensors.level inválido' }
-  const level = sensors.level as { sensor?: unknown; distanceMm?: unknown }
-  if (level.sensor !== 'AJ-SR04M' || typeof level.distanceMm !== 'number' || !Number.isFinite(level.distanceMm)
-    || level.distanceMm <= 0) return { ok: false, error: 'leitura AJ-SR04M inválida' }
+  let level: LevelReading | undefined
+  if (sensors.level !== undefined) {
+    if (typeof sensors.level !== 'object' || sensors.level === null) return { ok: false, error: 'sensors.level inválido' }
+    const item = sensors.level as { sensor?: unknown; distanceMm?: unknown }
+    if (item.sensor !== 'AJ-SR04M' || typeof item.distanceMm !== 'number' || !Number.isFinite(item.distanceMm)
+      || item.distanceMm <= 0) return { ok: false, error: 'leitura AJ-SR04M inválida' }
+    level = { sensor: 'AJ-SR04M', distanceMm: item.distanceMm }
+  }
 
   let flow: FlowReading | undefined
   if (sensors.flow !== undefined) {
@@ -88,7 +92,7 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
     ok: true,
     value: {
       thermocouples: readings as [ThermocoupleReading, ThermocoupleReading],
-      level: { sensor: 'AJ-SR04M', distanceMm: level.distanceMm },
+      ...(level ? { level } : {}),
       ...(flow ? { flow } : {}),
     },
   }

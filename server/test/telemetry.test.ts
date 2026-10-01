@@ -61,6 +61,23 @@ test('rejects a multi-sensor payload whose legacy temperature differs from therm
   )
 })
 
+test('accepts a live payload when the optional AJ-SR04M is unavailable', () => {
+  const result = normalizeTelemetry({
+    deviceId: 'esp32-molde-01',
+    temperatureC: 84.25,
+    sensor: 'MAX6675',
+    sensors: {
+      thermocouples: [
+        { id: 'max6675-1', temperatureC: 84.25 },
+        { id: 'max6675-2', temperatureC: 85.5 },
+      ],
+    },
+    pumps: { pump1: false, pump2: false },
+  })
+  assert.equal(result.ok, true)
+  if (result.ok) assert.equal(result.value.sensors?.level, undefined)
+})
+
 test('normalizes ZJ-S201 flow and the actual relay state reported by the ESP32', () => {
   const observedAt = '2026-09-10T12:30:00.000Z'
   const result = normalizeTelemetry({

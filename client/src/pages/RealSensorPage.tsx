@@ -24,7 +24,7 @@ type TelemetrySample = {
   sensor: 'MAX6675'
   sensors?: {
     thermocouples: [ThermocoupleReading, ThermocoupleReading]
-    level: LevelReading
+    level?: LevelReading
     flow?: FlowReading
   }
   pumps?: { pump1: boolean; pump2: boolean }
@@ -125,7 +125,7 @@ export default function RealSensorPage() {
               <div>
                 <p className="text-sm font-medium text-neutral-500">Nível (AJ-SR04M)</p>
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
-                  {sample.sensors?.level.distanceMm ?? '—'} mm
+                  {sample.sensors?.level?.distanceMm ?? '—'} mm
                 </p>
               </div>
               <div>

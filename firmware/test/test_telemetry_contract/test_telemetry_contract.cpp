@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <cstring>
 #include <string>
 
 #include "sensor_readings.h"
@@ -86,6 +87,12 @@ void test_parse_pump_command_fails_safe_when_missing_or_garbled() {
   TEST_ASSERT_FALSE(partial.pump1);
 }
 
+void test_full_payload_omits_an_unavailable_level_sensor_without_blocking_telemetry() {
+  const std::string payload = buildFullTelemetryPayload("press-01", 123.45, 126.5, 0, 0, 0, false, false);
+  TEST_ASSERT_NOT_NULL(strstr(payload.c_str(), "\"thermocouples\""));
+  TEST_ASSERT_NULL(strstr(payload.c_str(), "\"level\""));
+}
+
 void test_full_payload_appends_flow_and_actual_pump_state() {
   const std::string payload = buildFullTelemetryPayload("press-01", 123.45, 126.5, 350, 2.4, 12.75, true, false);
 
@@ -108,6 +115,7 @@ int main(int, char **) {
   RUN_TEST(test_pump_command_expires_after_timeout_including_millis_rollover);
   RUN_TEST(test_parse_pump_command_reads_both_pumps_from_response);
   RUN_TEST(test_parse_pump_command_fails_safe_when_missing_or_garbled);
+  RUN_TEST(test_full_payload_omits_an_unavailable_level_sensor_without_blocking_telemetry);
   RUN_TEST(test_full_payload_appends_flow_and_actual_pump_state);
   return UNITY_END();
 }

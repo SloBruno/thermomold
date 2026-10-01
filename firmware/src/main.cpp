@@ -284,18 +284,19 @@ void reportTemperature() {
     return;
   }
   const unsigned long levelDistanceMm = readLevelDistanceMm();
-  if (!isValidLevelDistanceMm(levelDistanceMm)) {
-    Serial.println("AJ-SR04M echo timed out; measurement discarded.");
-    return;
+  const bool levelAvailable = isValidLevelDistanceMm(levelDistanceMm);
+  if (!levelAvailable) {
+    Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
   }
   pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()),
                                              thermocoupleOneC, thermocoupleTwoC,
-                                             levelDistanceMm, flowLpm,
+                                             levelAvailable ? levelDistanceMm : 0, flowLpm,
                                              litersFromPulses(flowTotalPulses), pump1On,
                                              pump2On).c_str();
   if (postPayload(pendingPayload)) {
-    Serial.printf("Telemetry posted: %.2f C, %.2f C, %lu mm, %.2f L/min\n", thermocoupleOneC,
-                  thermocoupleTwoC, levelDistanceMm, flowLpm);
+    Serial.printf("Telemetry posted: %.2f C, %.2f C, %s, %.2f L/min\n", thermocoupleOneC,
+                  thermocoupleTwoC, levelAvailable ? (String(levelDistanceMm) + " mm").c_str() : "level unavailable",
+                  flowLpm);
     pendingPayload = "";
     retryDelayMs = kInitialRetryDelayMs;
   } else {
