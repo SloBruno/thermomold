@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import socket from '../lib/socket'
 
 type ThermocoupleReading = {
@@ -35,6 +36,15 @@ type TelemetryStatus =
   | { connected: false; status: 'offline'; stale: true; sample: null }
   | { connected: true; status: 'online' | 'stale'; stale: boolean; sample: TelemetrySample }
 
+type ChartPoint = {
+  observedAt: string
+  time: string
+  temperature1: number
+  temperature2?: number
+  levelMm?: number
+  flowLpm?: number
+}
+
 const apiBaseUrl = import.meta.env.VITE_SOCKET_URL || ''
 
 function formatTimestamp(timestamp: string): string {
@@ -46,6 +56,7 @@ function formatTimestamp(timestamp: string): string {
 
 export default function RealSensorPage() {
   const [telemetry, setTelemetry] = useState<TelemetryStatus | null>(null)
+  const [history, setHistory] = useState<ChartPoint[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const loadTelemetry = useCallback(async () => {
@@ -73,6 +84,24 @@ export default function RealSensorPage() {
       socket.off('telemetry:data', handleTelemetry)
     }
   }, [loadTelemetry])
+
+  useEffect(() => {
+    const sample = telemetry?.sample
+    if (!sample) return
+    setHistory(previous => {
+      if (previous.length > 0 && previous[previous.length - 1].observedAt === sample.observedAt) return previous
+      const temperatures = sample.sensors?.thermocouples
+      const point: ChartPoint = {
+        observedAt: sample.observedAt,
+        time: new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(sample.observedAt)),
+        temperature1: temperatures?.[0]?.temperatureC ?? sample.temperatureC,
+        temperature2: temperatures?.[1]?.temperatureC,
+        levelMm: sample.sensors?.level?.distanceMm,
+        flowLpm: sample.sensors?.flow?.litersPerMinute,
+      }
+      return [...previous, point].slice(-1200)
+    })
+  }, [telemetry?.sample?.observedAt])
 
   const sample = telemetry?.sample
   const statusLabel = error
@@ -150,6 +179,30 @@ export default function RealSensorPage() {
                 </p>
               </div>
             </div>
+            <section className="space-y-4 border-t border-neutral-100 pt-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-lg font-bold text-neutral-900">Gráficos ao vivo</h3>
+                <p className="text-xs text-neutral-500">{history.length} pontos · apaga ao fechar a página</p>
+              </div>
+              {history.length < 2 ? (
+                <p className="rounded-lg bg-neutral-50 p-4 text-sm text-neutral-500">Aguardando mais uma leitura para desenhar os gráficos.</p>
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <div className="h-64 rounded-lg border border-neutral-200 p-3">
+                    <p className="mb-2 text-sm font-bold text-neutral-700">Temperaturas</p>
+                    <ResponsiveContainer width="100%" height="90%">
+                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis unit=" °C" /><Tooltip /><Legend /><Line type="monotone" dataKey="temperature1" name="MAX6675 #1" stroke="#dc2626" dot={false} /><Line type="monotone" dataKey="temperature2" name="MAX6675 #2" stroke="#2563eb" dot={false} connectNulls /></LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="h-64 rounded-lg border border-neutral-200 p-3">
+                    <p className="mb-2 text-sm font-bold text-neutral-700">Nível e vazão</p>
+                    <ResponsiveContainer width="100%" height="90%">
+                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis yAxisId="level" unit=" mm" /><YAxis yAxisId="flow" orientation="right" unit=" L/m" /><Tooltip /><Legend /><Line yAxisId="level" type="monotone" dataKey="levelMm" name="Nível" stroke="#7c3aed" dot={false} connectNulls /><Line yAxisId="flow" type="monotone" dataKey="flowLpm" name="Vazão" stroke="#059669" dot={false} connectNulls /></LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </section>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="font-medium text-neutral-500">Sensor</dt>
