@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { resolve } from 'path';
 import type { SimulatorState, DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from '../../shared/types';
 import { createTelemetryStore, normalizeTelemetry } from './telemetry.js';
 import { createPumpStore } from './pumps.js';
@@ -12,7 +13,9 @@ const EXPECTED_HEAT_LOAD = 18;
 const REF_FLOW = 9;
 
 const app = express();
+const otaPublicDirectory = resolve(process.cwd(), 'public', 'ota');
 app.use(express.json());
+app.use('/ota', express.static(otaPublicDirectory));
 
 const clientOrigins = process.env.CLIENT_ORIGIN
   ?.split(',')
@@ -491,6 +494,15 @@ app.post('/api/telemetry', (req, res) => {
   io.emit('telemetry:data', status);
   // The ESP32 applies these commands; missing/failed responses make it turn pumps off.
   res.status(202).json({ accepted: true, sample, commands: { pumps: pumpStore.get() } });
+});
+
+app.get('/api/ota/manifest', (req, res) => {
+  if (!telemetryDeviceKey || req.get('X-Device-Key') !== telemetryDeviceKey) {
+    res.status(401).json({ error: 'não autorizado' });
+    return;
+  }
+
+  res.sendFile('manifest.json', { root: otaPublicDirectory });
 });
 
 app.post('/simulate', (req, res) => {

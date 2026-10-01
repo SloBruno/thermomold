@@ -5,6 +5,7 @@
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
 #include "actuators.h"
+#include "ota_update.h"
 
 void test_payload_contains_the_required_exact_contract_fields() {
   const std::string payload = buildTelemetryPayload("press-01", 123.45);
@@ -87,6 +88,30 @@ void test_parse_pump_command_fails_safe_when_missing_or_garbled() {
   TEST_ASSERT_FALSE(partial.pump1);
 }
 
+void test_ota_manifest_accepts_only_a_newer_https_version_with_sha256() {
+  const OtaManifest manifest = parseOtaManifest(
+      "{\"version\":\"1.2.0\",\"url\":\"https://thermomold.onrender.com/ota/thermomold.bin\","
+      "\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"}");
+  TEST_ASSERT_TRUE(manifest.valid);
+  TEST_ASSERT_TRUE(isNewerFirmwareVersion("1.1.9", manifest.version));
+  TEST_ASSERT_FALSE(isNewerFirmwareVersion("1.2.0", manifest.version));
+  TEST_ASSERT_FALSE(isNewerFirmwareVersion("1.3.0", manifest.version));
+}
+
+void test_ota_manifest_rejects_http_and_invalid_hashes() {
+  const OtaManifest insecure = parseOtaManifest(
+      "{\"version\":\"1.2.0\",\"url\":\"http://example.com/firmware.bin\",\"sha256\":\"bad\"}");
+  TEST_ASSERT_FALSE(insecure.valid);
+}
+
+void test_ota_manifest_rejects_uppercase_hash_and_non_newer_version() {
+  const OtaManifest uppercaseHash = parseOtaManifest(
+      "{\"version\":\"0.1.0\",\"url\":\"https://thermomold.onrender.com/ota/thermomold.bin\","
+      "\"sha256\":\"ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"}");
+  TEST_ASSERT_FALSE(uppercaseHash.valid);
+  TEST_ASSERT_FALSE(isNewerFirmwareVersion("0.1.0", "0.1.0"));
+}
+
 void test_full_payload_omits_an_unavailable_level_sensor_without_blocking_telemetry() {
   const std::string payload = buildFullTelemetryPayload("press-01", 123.45, 126.5, 0, 0, 0, false, false);
   TEST_ASSERT_NOT_NULL(strstr(payload.c_str(), "\"thermocouples\""));
@@ -115,6 +140,9 @@ int main(int, char **) {
   RUN_TEST(test_pump_command_expires_after_timeout_including_millis_rollover);
   RUN_TEST(test_parse_pump_command_reads_both_pumps_from_response);
   RUN_TEST(test_parse_pump_command_fails_safe_when_missing_or_garbled);
+  RUN_TEST(test_ota_manifest_accepts_only_a_newer_https_version_with_sha256);
+  RUN_TEST(test_ota_manifest_rejects_http_and_invalid_hashes);
+  RUN_TEST(test_ota_manifest_rejects_uppercase_hash_and_non_newer_version);
   RUN_TEST(test_full_payload_omits_an_unavailable_level_sensor_without_blocking_telemetry);
   RUN_TEST(test_full_payload_appends_flow_and_actual_pump_state);
   return UNITY_END();

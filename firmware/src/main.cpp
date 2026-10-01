@@ -2,14 +2,18 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <LittleFS.h>
+#include <Update.h>
 #include <MAX6675.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <WiFiManager.h>
 #include <cmath>
+#include <ctime>
+#include <mbedtls/sha256.h>
 
 #include "actuators.h"
+#include "ota_update.h"
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
 
@@ -34,6 +38,30 @@ constexpr unsigned long kReconnectIntervalMs = 10000;
 constexpr unsigned long kInitialRetryDelayMs = 2000;
 constexpr unsigned long kMaximumRetryDelayMs = 60000;
 constexpr char kConfigPath[] = "/config.json";
+constexpr char kOtaManifestUrl[] = "https://thermomold.onrender.com/api/ota/manifest";
+constexpr unsigned long kOtaCheckIntervalMs = 15UL * 60UL * 1000UL;
+constexpr time_t kEarliestValidTime = 1704067200;  // 2024-01-01 UTC
+#ifndef THERMOMOLD_FIRMWARE_VERSION
+#define THERMOMOLD_FIRMWARE_VERSION "0.1.0"
+#endif
+
+// GTS Root R4 anchors the current Render chain (WE1 -> GTS Root R4).
+// OTA clients deliberately use this CA instead of setInsecure().
+constexpr char kOtaRootCa[] = R"PEM(-----BEGIN CERTIFICATE-----
+MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQYD
+VQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEUMBIG
+A1UEAxMLR1RTIFJvb3QgUjQwHhcNMTYwNjIyMDAwMDAwWhcNMzYwNjIyMDAwMDAw
+WjBHMQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2Vz
+IExMQzEUMBIGA1UEAxMLR1RTIFJvb3QgUjQwdjAQBgcqhkjOPQIBBgUrgQQAIgNi
+AATzdHOnaItgrkO4NcWBMHtLSZ37wWHO5t5GvWvVYRg1rkDdc/eJkTBa6zzuhXyi
+QHY7qca4R9gq55KRanPpsXI5nymfopjTX15YhmUPoYRlBtHci8nHc8iMai/lxKvR
+HYqjQjBAMA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+BBSATNbrdP9JNqPV2Py1PsVq8JQdjDAKBggqhkjOPQQDAwNpADBmAjEA6ED/g94D
+9J+uHXqnLrmvT/aDHQ4thQEd0dlq7A/Cr8deVl5c1RxYIigL9zC2L7F8AjEA8GE8
+p/SgguMh1YQdc4acLa/KNJvxn7kjNuK8YAOdgLOaVsjh4rsUecrNIdSUtUlD
+-----END CERTIFICATE-----
+)PEM";
+
 
 struct DeviceConfig {
   String deviceId;
@@ -51,6 +79,7 @@ unsigned long nextReportAt = 0;
 unsigned long nextRetryAt = 0;
 unsigned long retryDelayMs = kInitialRetryDelayMs;
 unsigned long lastReconnectAttemptAt = 0;
+unsigned long nextOtaCheckAt = 0;
 
 bool pump1On = false;
 bool pump2On = false;
@@ -211,6 +240,117 @@ void ensureWiFi() {
   Serial.println("Attempting Wi-Fi reconnect.");
 }
 
+void configureOtaClock() {
+  // SNTP setup is asynchronous; OTA waits for a valid wall clock rather than
+  // blocking telemetry or actuator safety while time is unavailable.
+  configTime(0, 0, "time.google.com", "pool.ntp.org");
+}
+
+bool hasValidOtaTime() {
+  time_t now = 0;
+  time(&now);
+  return now >= kEarliestValidTime;
+}
+
+bool fetchOtaManifest(OtaManifest &manifest) {
+  WiFiClientSecure client;
+  client.setCACert(kOtaRootCa);
+  HTTPClient http;
+  if (!http.begin(client, kOtaManifestUrl)) {
+    Serial.println("OTA manifest connection initialization failed.");
+    return false;
+  }
+  http.setTimeout(10000);
+  http.addHeader("X-Device-Key", config.deviceKey);
+  const int status = http.GET();
+  const String body = status == 200 ? http.getString() : String();
+  http.end();
+  if (status != 200) {
+    Serial.printf("OTA manifest request failed with HTTP status %d\n", status);
+    return false;
+  }
+  manifest = parseOtaManifest(std::string(body.c_str()));
+  if (!manifest.valid) Serial.println("OTA manifest is invalid; keeping current firmware.");
+  return manifest.valid;
+}
+
+bool downloadAndInstallOta(const OtaManifest &manifest) {
+  WiFiClientSecure client;
+  client.setCACert(kOtaRootCa);
+  HTTPClient http;
+  if (!http.begin(client, manifest.url.c_str())) {
+    Serial.println("OTA download connection initialization failed.");
+    return false;
+  }
+  http.setTimeout(10000);
+  const int status = http.GET();
+  const int contentLength = http.getSize();
+  if (status != 200 || contentLength <= 0) {
+    Serial.printf("OTA download failed (HTTP %d, size %d).\n", status, contentLength);
+    http.end();
+    return false;
+  }
+  if (!Update.begin(static_cast<size_t>(contentLength), U_FLASH)) {
+    Serial.printf("OTA could not reserve update space (error %u).\n", Update.getError());
+    http.end();
+    return false;
+  }
+
+  mbedtls_sha256_context sha;
+  mbedtls_sha256_init(&sha);
+  bool success = mbedtls_sha256_starts_ret(&sha, 0) == 0;
+  WiFiClient *stream = http.getStreamPtr();
+  uint8_t buffer[1024];
+  int remaining = contentLength;
+  while (success && remaining > 0) {
+    const size_t requested = static_cast<size_t>(min(remaining, static_cast<int>(sizeof(buffer))));
+    const size_t received = stream->readBytes(buffer, requested);
+    if (received == 0 || mbedtls_sha256_update_ret(&sha, buffer, received) != 0 ||
+        Update.write(buffer, received) != received) {
+      success = false;
+      break;
+    }
+    remaining -= static_cast<int>(received);
+  }
+
+  uint8_t digest[32];
+  if (success) success = mbedtls_sha256_finish_ret(&sha, digest) == 0;
+  mbedtls_sha256_free(&sha);
+  http.end();
+  char digestHex[65];
+  for (size_t index = 0; index < sizeof(digest); ++index) {
+    snprintf(digestHex + index * 2, 3, "%02x", digest[index]);
+  }
+  if (!success || remaining != 0 || manifest.sha256 != digestHex) {
+    Serial.println("OTA download hash mismatch or stream failure; update aborted.");
+    Update.abort();
+    return false;
+  }
+  if (!Update.end()) {
+    Serial.printf("OTA finalization failed (error %u).\n", Update.getError());
+    return false;
+  }
+  Serial.printf("OTA version %s installed; rebooting.\n", manifest.version.c_str());
+  ESP.restart();
+  return true;  // Unreachable after restart; documents successful Update.end().
+}
+
+void checkForOtaUpdate() {
+  if (WiFi.status() != WL_CONNECTED || config.deviceKey.isEmpty() || !hasValidOtaTime()) return;
+  // Never block a commanded pump or queued telemetry retry for a firmware download.
+  if (pump1On || pump2On || !pendingPayload.isEmpty()) return;
+
+  OtaManifest manifest;
+  if (!fetchOtaManifest(manifest)) return;
+  if (!isNewerFirmwareVersion(THERMOMOLD_FIRMWARE_VERSION, manifest.version)) {
+    Serial.println("OTA firmware is already current.");
+    return;
+  }
+  Serial.printf("OTA update available: %s -> %s\n", THERMOMOLD_FIRMWARE_VERSION,
+                manifest.version.c_str());
+  downloadAndInstallOta(manifest);
+}
+
 bool postPayload(const String &payload) {
   if (config.endpoint.isEmpty()) {
     Serial.println("Telemetry endpoint is not configured; not posting.");
@@ -312,8 +452,10 @@ void setup() {
   if (!LittleFS.begin(true)) Serial.println("LittleFS unavailable; settings will not persist.");
   loadConfig();
   provisionWiFiAndSettings();
+  configureOtaClock();
   configureSensor();
   nextReportAt = millis();
+  nextOtaCheckAt = millis();
 }
 
 void loop() {
@@ -321,6 +463,10 @@ void loop() {
   updateFlow();
   enforcePumpFailSafe();
   const unsigned long now = millis();
+  if (now >= nextOtaCheckAt) {
+    nextOtaCheckAt = now + kOtaCheckIntervalMs;
+    checkForOtaUpdate();
+  }
   if (!pendingPayload.isEmpty() && now >= nextRetryAt) {
     if (postPayload(pendingPayload)) {
       pendingPayload = "";
