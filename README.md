@@ -6,6 +6,7 @@ Monitoramento e controle remoto de um circuito de refrigeração de molde. O pro
 
 - Dashboard: <https://slobruno.github.io/thermomold/>
 - Sensores físicos: <https://slobruno.github.io/thermomold/#/sensor-real>
+- Calibração: <https://slobruno.github.io/thermomold/#/calibracao>
 - Controle de bombas: <https://slobruno.github.io/thermomold/#/bombas>
 - API: <https://thermomold.onrender.com/api/telemetry>
 
@@ -31,6 +32,7 @@ O ThermoMold é um sistema para acompanhar um pequeno circuito hidráulico de re
 ### Incluído no escopo atual
 
 - Medição de temperatura em dois pontos com dois módulos MAX6675 e termopares tipo K.
+- Calibração pública de dois pontos, independente para cada MAX6675, com revisão persistente.
 - Medição de distância/nível com AJ-SR04M.
 - Medição de vazão instantânea e volume acumulado com ZJ-S201.
 - Telemetria do ESP32 para a internet por Wi-Fi e HTTPS.
@@ -110,6 +112,7 @@ O WiFiManager grava as credenciais de Wi-Fi na flash. O firmware grava `deviceId
 | Área | Funcionalidade | Estado |
 |---|---|---|
 | Telemetria | Dois MAX6675 | Implementado e já observado fisicamente |
+| Calibração | Dois pontos por MAX6675 | Implementado; requer validação com referências conhecidas |
 | Telemetria | AJ-SR04M | Implementado e já observado fisicamente |
 | Telemetria | ZJ-S201 | Implementado no código; requer calibração/validação física |
 | Controle | Duas bombas por HW-383 | Implementado; requer teste elétrico de polaridade do relé |
@@ -239,7 +242,7 @@ Leia também [`firmware/README.md`](firmware/README.md).
 
 Pasta: [`server/`](server/)
 
-O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a última amostra, publica mudanças para o dashboard e armazena o comando desejado das bombas em memória.
+O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a última amostra, publica mudanças para o dashboard e armazena o comando de calibração em `calibration.json` (ou no caminho de `CALIBRATION_FILE`).
 
 ### Endpoints principais
 
@@ -250,6 +253,8 @@ O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a
 | `POST` | `/api/telemetry` | Recebe a telemetria autenticada do ESP32 |
 | `GET` | `/api/pumps` | Estado desejado das duas bombas |
 | `POST` | `/api/pumps` | Altera o estado desejado: `{"pump1":true}` ou `{"pump2":false}` |
+| `GET` | `/api/calibration` | Lê a calibração pública atual e sua revisão |
+| `POST` | `/api/calibration` | Salva dois pontos por sensor e incrementa a revisão |
 
 ### Contrato resumido de telemetria
 
@@ -260,8 +265,8 @@ O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a
   "sensor": "MAX6675",
   "sensors": {
     "thermocouples": [
-      { "id": "max6675-1", "temperatureC": 25.5 },
-      { "id": "max6675-2", "temperatureC": 24.8 }
+      { "id": "max6675-1", "rawTemperatureC": 25.2, "temperatureC": 25.5 },
+      { "id": "max6675-2", "rawTemperatureC": 24.8, "temperatureC": 24.8 }
     ],
     "level": { "sensor": "AJ-SR04M", "distanceMm": 227 },
     "flow": { "sensor": "ZJ-S201", "litersPerMinute": 1.2, "totalLiters": 3.45 }
@@ -270,7 +275,17 @@ O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a
 }
 ```
 
-A resposta HTTP inclui `commands.pumps`. O ESP32 não expõe os sensores nem os relés diretamente para a internet; só ele faz a conexão de saída ao backend.
+A amostra também inclui `rawTemperatureC` (legado do sensor 1) e `calibrationRevision`; cada termopar inclui seu próprio `rawTemperatureC` e temperatura corrigida. A resposta autenticada do ESP32 inclui `commands.pumps` e `commands.calibration`. O ESP32 só aplica uma revisão maior que a gravada e persiste o comando em LittleFS.
+
+### Calibração de dois pontos
+
+Abra a tela pública **Calibração**, anote a leitura bruta de cada termopar em duas temperaturas de referência conhecidas e informe os quatro valores por sensor. A correção aplicada no ESP32 é linear, inclusive entre e fora dos pontos:
+
+```text
+temperaturaCorrigida = referenciaBaixa
+  + (temperaturaBruta - brutaBaixa)
+  * (referenciaAlta - referenciaBaixa) / (brutaAlta - brutaBaixa)
+```
 
 ### Variáveis de ambiente do servidor
 
@@ -280,6 +295,7 @@ A resposta HTTP inclui `commands.pumps`. O ESP32 não expõe os sensores nem os 
 | `CLIENT_ORIGIN` | Sim | Origem permitida do GitHub Pages, sem o caminho do repositório |
 | `TELEMETRY_DEVICE_KEY` | Sim | Chave aceita em `X-Device-Key` nos envios do ESP32 |
 | `TELEMETRY_STALE_MS` | Recomendado | Tempo sem leitura para marcar telemetria como desatualizada; padrão 30000 |
+| `CALIBRATION_FILE` | Não | Arquivo de persistência do comando; padrão `calibration.json` no diretório do servidor |
 
 Segredos devem existir apenas no painel do Render ou no portal local do ESP32. Nunca os coloque em commits, issues, chat ou arquivos rastreados.
 
@@ -293,6 +309,7 @@ Principais telas:
 
 - **Simulador:** cenário de refrigeração e falhas simuladas.
 - **Sensor Real:** temperaturas, distância de nível, vazão e estado confirmado das bombas.
+- **Calibração:** wizard público para os dois pontos de cada MAX6675 e revisão atualmente salva.
 - **Bombas:** comando manual e comparação entre o estado desejado e o último estado confirmado pelo ESP32.
 
 O frontend consulta REST e recebe eventos Socket.IO. Há também atualização periódica para que a tela se recupere quando uma conexão de socket é interrompida.
@@ -405,6 +422,7 @@ Antes de conectar as bombas:
 7. Meça a tensão no D26 e D34 com os sensores em nível alto; não pode ultrapassar 3,6 V.
 8. Só então conecte as bombas e teste com água.
 9. Meça um volume conhecido para calibrar o ZJ-S201.
+10. Para calibrar temperatura, use duas referências estáveis por termopar, salve na tela **Calibração** e confirme no **Sensor Real** a revisão e os valores brutos/corrigidos.
 
 Não use este sistema sem supervisão até concluir esses testes e adicionar os intertravamentos de nível e vazão.
 

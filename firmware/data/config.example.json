@@ -2,5 +2,12 @@
   "deviceId": "thermomold-press-01",
   "endpoint": "https://thermomold.onrender.com/api/telemetry",
   "deviceKey": "",
-  "reportIntervalMs": 500
+  "reportIntervalMs": 500,
+  "calibration": {
+    "revision": 0,
+    "sensors": {
+      "max6675-1": { "low": { "rawC": 0, "referenceC": 0 }, "high": { "rawC": 100, "referenceC": 100 } },
+      "max6675-2": { "low": { "rawC": 0, "referenceC": 0 }, "high": { "rawC": 100, "referenceC": 100 } }
+    }
+  }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdint>
 #include <string>
 
 inline std::string escapeJsonString(const std::string &value) {
@@ -78,6 +79,18 @@ inline std::string buildFullTelemetryPayload(const std::string &deviceId,
                                              double flowLitersPerMinute,
                                              double flowTotalLiters,
                                              bool pump1On,
+                                             bool pump2On,
+                                             double rawThermocoupleOneC,
+                                             double rawThermocoupleTwoC,
+                                             uint32_t calibrationRevision);
+
+inline std::string buildFullTelemetryPayload(const std::string &deviceId,
+                                             double thermocoupleOneC,
+                                             double thermocoupleTwoC,
+                                             unsigned long levelDistanceMm,
+                                             double flowLitersPerMinute,
+                                             double flowTotalLiters,
+                                             bool pump1On,
                                              bool pump2On) {
   const std::string thermocoupleOne = formatTemperatureC(thermocoupleOneC);
   const std::string thermocoupleTwo = formatTemperatureC(thermocoupleTwoC);
@@ -86,6 +99,39 @@ inline std::string buildFullTelemetryPayload(const std::string &deviceId,
                         ",\"sensor\":\"MAX6675\",\"sensors\":{\"thermocouples\":[{\"id\":\"max6675-1\",\"temperatureC\":" +
                         thermocoupleOne + "},{\"id\":\"max6675-2\",\"temperatureC\":" +
                         thermocoupleTwo + "}]";
+  if (levelDistanceMm > 0) {
+    payload += ",\"level\":{\"sensor\":\"AJ-SR04M\",\"distanceMm\":" +
+               std::to_string(levelDistanceMm) + "}";
+  }
+  return payload + ",\"flow\":{\"sensor\":\"ZJ-S201\",\"litersPerMinute\":" +
+         formatTemperatureC(flowLitersPerMinute) + ",\"totalLiters\":" +
+         formatTemperatureC(flowTotalLiters) + "}},\"pumps\":{\"pump1\":" +
+         (pump1On ? "true" : "false") + ",\"pump2\":" + (pump2On ? "true" : "false") + "}}";
+}
+
+inline std::string buildFullTelemetryPayload(const std::string &deviceId,
+                                             double thermocoupleOneC,
+                                             double thermocoupleTwoC,
+                                             unsigned long levelDistanceMm,
+                                             double flowLitersPerMinute,
+                                             double flowTotalLiters,
+                                             bool pump1On,
+                                             bool pump2On,
+                                             double rawThermocoupleOneC,
+                                             double rawThermocoupleTwoC,
+                                             uint32_t calibrationRevision) {
+  const std::string thermocoupleOne = formatTemperatureC(thermocoupleOneC);
+  const std::string thermocoupleTwo = formatTemperatureC(thermocoupleTwoC);
+  const std::string rawThermocoupleOne = formatTemperatureC(rawThermocoupleOneC);
+  const std::string rawThermocoupleTwo = formatTemperatureC(rawThermocoupleTwoC);
+  std::string payload = "{\"deviceId\":\"" + escapeJsonString(deviceId) +
+                        "\",\"temperatureC\":" + thermocoupleOne +
+                        ",\"rawTemperatureC\":" + rawThermocoupleOne +
+                        ",\"calibrationRevision\":" + std::to_string(calibrationRevision) +
+                        ",\"sensor\":\"MAX6675\",\"sensors\":{\"thermocouples\":[{\"id\":\"max6675-1\",\"rawTemperatureC\":" +
+                        rawThermocoupleOne + ",\"temperatureC\":" + thermocoupleOne +
+                        "},{\"id\":\"max6675-2\",\"rawTemperatureC\":" + rawThermocoupleTwo +
+                        ",\"temperatureC\":" + thermocoupleTwo + "}]";
   if (levelDistanceMm > 0) {
     payload += ",\"level\":{\"sensor\":\"AJ-SR04M\",\"distanceMm\":" +
                std::to_string(levelDistanceMm) + "}";

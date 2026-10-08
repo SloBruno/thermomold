@@ -2,6 +2,7 @@ client/node_modules/
 server/node_modules/
 client/dist/
 server/dist/
+calibration.json
 .env
 .env.*
 !*.env.example

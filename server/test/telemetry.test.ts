@@ -161,3 +161,25 @@ test('normalizes both MAX6675 readings and the AJ-SR04M distance while preservin
     },
   )
 })
+
+test('normalizes corrected MAX6675 values with raw readings and calibration revision', () => {
+  const result = normalizeTelemetry({
+    deviceId: 'esp32-molde-01',
+    temperatureC: 85,
+    rawTemperatureC: 84,
+    calibrationRevision: 7,
+    sensor: 'MAX6675',
+    sensors: {
+      thermocouples: [
+        { id: 'max6675-1', rawTemperatureC: 84, temperatureC: 85 },
+        { id: 'max6675-2', rawTemperatureC: 90, temperatureC: 89 },
+      ],
+    },
+  })
+  assert.equal(result.ok, true)
+  if (result.ok) {
+    assert.equal(result.value.rawTemperatureC, 84)
+    assert.equal(result.value.calibrationRevision, 7)
+    assert.deepEqual(result.value.sensors?.thermocouples[1], { id: 'max6675-2', rawTemperatureC: 90, temperatureC: 89 })
+  }
+})

@@ -5,6 +5,7 @@ import socket from '../lib/socket'
 type ThermocoupleReading = {
   id: 'max6675-1' | 'max6675-2'
   temperatureC: number
+  rawTemperatureC?: number
 }
 
 type LevelReading = {
@@ -21,6 +22,8 @@ type FlowReading = {
 type TelemetrySample = {
   deviceId: string
   temperatureC: number
+  rawTemperatureC?: number
+  calibrationRevision?: number
   observedAt: string
   sensor: 'MAX6675'
   sensors?: {
@@ -143,6 +146,11 @@ export default function RealSensorPage() {
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
                   {(sample.sensors?.thermocouples[0].temperatureC ?? sample.temperatureC).toFixed(2)} °C
                 </p>
+                {sample.rawTemperatureC !== undefined && <p className="text-xs text-neutral-500">Bruta: {sample.rawTemperatureC.toFixed(2)} °C</p>}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Revisão de calibração</p>
+                <p className="text-3xl font-bold tabular-nums text-neutral-900">{sample.calibrationRevision ?? '—'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">MAX6675 #2</p>

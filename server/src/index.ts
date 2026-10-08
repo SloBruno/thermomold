@@ -6,6 +6,7 @@ import { resolve } from 'path';
 import type { SimulatorState, DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from '../../shared/types';
 import { createTelemetryStore, normalizeTelemetry } from './telemetry.js';
 import { createPumpStore } from './pumps.js';
+import { createCalibrationStore, createFileCalibrationPersistence } from './calibration.js';
 
 const CP_WATER = 4.18;
 const MOLD_TARGET_TEMP = 80;
@@ -37,6 +38,8 @@ const telemetryStaleAfterMs = Number.isFinite(configuredStaleAfterMs) && configu
   : 30_000;
 const telemetryDeviceKey = process.env.TELEMETRY_DEVICE_KEY;
 const telemetryStore = createTelemetryStore(telemetryStaleAfterMs);
+const calibrationFile = process.env.CALIBRATION_FILE ?? resolve(process.cwd(), 'calibration.json');
+const calibrationStore = createCalibrationStore(createFileCalibrationPersistence(calibrationFile));
 // Desired pump state; always starts OFF so a backend restart never turns pumps on.
 const pumpStore = createPumpStore();
 
@@ -463,6 +466,19 @@ app.get('/api/telemetry', (_req, res) => {
   res.json(telemetryStore.getStatus());
 });
 
+app.get('/api/calibration', (_req, res) => {
+  res.json(calibrationStore.get());
+});
+
+app.post('/api/calibration', (req, res) => {
+  const result = calibrationStore.update(req.body);
+  if (!result.ok) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json(result.value);
+});
+
 app.get('/api/pumps', (_req, res) => {
   res.json(pumpStore.get());
 });
@@ -493,7 +509,11 @@ app.post('/api/telemetry', (req, res) => {
   const status = telemetryStore.getStatus();
   io.emit('telemetry:data', status);
   // The ESP32 applies these commands; missing/failed responses make it turn pumps off.
-  res.status(202).json({ accepted: true, sample, commands: { pumps: pumpStore.get() } });
+  res.status(202).json({
+    accepted: true,
+    sample,
+    commands: { pumps: pumpStore.get(), calibration: calibrationStore.get() },
+  });
 });
 
 app.get('/api/ota/manifest', (req, res) => {

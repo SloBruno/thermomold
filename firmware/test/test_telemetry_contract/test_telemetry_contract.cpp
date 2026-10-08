@@ -6,6 +6,19 @@
 #include "telemetry_contract.h"
 #include "actuators.h"
 #include "ota_update.h"
+#include "calibration.h"
+
+void test_two_point_calibration_corrects_each_sensor_value() {
+  const SensorCalibration calibration{{20.0f, 21.0f}, {100.0f, 101.0f}};
+  TEST_ASSERT_EQUAL_FLOAT(26.0f, applyTemperatureCalibration(25.0f, calibration));
+  TEST_ASSERT_EQUAL_FLOAT(61.0f, applyTemperatureCalibration(60.0f, calibration));
+}
+
+void test_calibration_revision_accepts_only_newer_commands() {
+  TEST_ASSERT_TRUE(calibrationRevisionIsNewer(4, 5));
+  TEST_ASSERT_FALSE(calibrationRevisionIsNewer(5, 5));
+  TEST_ASSERT_FALSE(calibrationRevisionIsNewer(5, 4));
+}
 
 void test_payload_contains_the_required_exact_contract_fields() {
   const std::string payload = buildTelemetryPayload("press-01", 123.45);
@@ -126,6 +139,14 @@ void test_full_payload_appends_flow_and_actual_pump_state() {
       payload.c_str());
 }
 
+void test_full_payload_contains_raw_corrected_and_revision_values() {
+  const std::string payload = buildFullTelemetryPayload("press-01", 25.0, 60.0, 0, 0, 0, false, false,
+                                                       24.5, 59.5, 12);
+  TEST_ASSERT_NOT_NULL(strstr(payload.c_str(), "\"rawTemperatureC\":24.5"));
+  TEST_ASSERT_NOT_NULL(strstr(payload.c_str(), "\"rawTemperatureC\":59.5"));
+  TEST_ASSERT_NOT_NULL(strstr(payload.c_str(), "\"calibrationRevision\":12"));
+}
+
 int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_payload_contains_the_required_exact_contract_fields);
@@ -145,5 +166,8 @@ int main(int, char **) {
   RUN_TEST(test_ota_manifest_rejects_uppercase_hash_and_non_newer_version);
   RUN_TEST(test_full_payload_omits_an_unavailable_level_sensor_without_blocking_telemetry);
   RUN_TEST(test_full_payload_appends_flow_and_actual_pump_state);
+  RUN_TEST(test_two_point_calibration_corrects_each_sensor_value);
+  RUN_TEST(test_calibration_revision_accepts_only_newer_commands);
+  RUN_TEST(test_full_payload_contains_raw_corrected_and_revision_values);
   return UNITY_END();
 }

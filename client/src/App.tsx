@@ -4,6 +4,7 @@ import SimpleDashboardPage from './pages/SimpleDashboardPage'
 import MoldParametersPage from './pages/MoldParametersPage'
 import RealSensorPage from './pages/RealSensorPage'
 import PumpControlPage from './pages/PumpControlPage'
+import CalibrationPage from './pages/CalibrationPage'
 
 function App() {
   const Router = import.meta.env.VITE_ROUTER_MODE === 'hash' ? HashRouter : BrowserRouter
@@ -74,6 +75,12 @@ function App() {
             >
               Bombas
             </NavLink>
+            <NavLink
+              to="/calibracao"
+              className={({ isActive }) => `px-4 py-1.5 rounded text-sm font-medium transition-colors ${isActive ? 'bg-white text-neutral-900' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'}`}
+            >
+              Calibração
+            </NavLink>
           </div>
         </nav>
         <main>
@@ -83,6 +90,7 @@ function App() {
             <Route path="/mold-parameters" element={<MoldParametersPage />} />
             <Route path="/sensor-real" element={<RealSensorPage />} />
             <Route path="/bombas" element={<PumpControlPage />} />
+            <Route path="/calibracao" element={<CalibrationPage />} />
             <Route path="*" element={<Navigate to="/simple-simulator" replace />} />
           </Routes>
         </main>

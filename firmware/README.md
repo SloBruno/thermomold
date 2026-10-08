@@ -3,7 +3,7 @@
 PlatformIO/Arduino firmware for an ESP32 connected to two MAX6675 K-type thermocouple modules and one AJ-SR04M ultrasonic level sensor. It keeps the legacy fields and sends all readings in `sensors` to the configured `/api/telemetry` URL:
 
 ```json
-{"deviceId":"press-01","temperatureC":123.45,"sensor":"MAX6675","sensors":{"thermocouples":[{"id":"max6675-1","temperatureC":123.45},{"id":"max6675-2","temperatureC":126.5}],"level":{"sensor":"AJ-SR04M","distanceMm":350}}}
+{"deviceId":"press-01","temperatureC":123.45,"rawTemperatureC":122.9,"calibrationRevision":3,"sensor":"MAX6675","sensors":{"thermocouples":[{"id":"max6675-1","rawTemperatureC":122.9,"temperatureC":123.45},{"id":"max6675-2","rawTemperatureC":126.5,"temperatureC":126.5}],"level":{"sensor":"AJ-SR04M","distanceMm":350}}}
 ```
 
 `observedAt` is intentionally omitted: the server assigns its observation time. The `X-Device-Key` request header is sent only when `deviceKey` is configured.
@@ -57,5 +57,10 @@ For repeatable setup, copy `data/config.example.json` to `data/config.json`, fil
 - Failed non-2xx telemetry posts are retained and retried with exponential backoff from 2 to 60 seconds.
 - A medição e publicação normais ocorrem a cada 500 ms.
 - The device key is not sent at all when it is blank.
+- The authenticated telemetry response can carry a newer two-point calibration command. The ESP32 rejects older revisions, applies linear correction independently, and persists the accepted points/revision in LittleFS `/config.json`.
+
+## Temperature calibration
+
+Use the public web wizard at `/calibracao`. For each MAX6675, record two stable raw readings against known reference temperatures. The firmware applies the linear two-point formula and publishes both `rawTemperatureC` and corrected `temperatureC`, plus `calibrationRevision`, in every full telemetry sample.
 
 Run the host-side payload contract test with `platformio test -e native`.

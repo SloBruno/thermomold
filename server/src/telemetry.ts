@@ -5,6 +5,7 @@ export const K_TYPE_MAX_C = 1350
 
 export interface ThermocoupleReading {
   id: 'max6675-1' | 'max6675-2'
+  rawTemperatureC?: number
   temperatureC: number
 }
 
@@ -28,6 +29,8 @@ export interface MultiSensorReadings {
 export interface TelemetrySample {
   deviceId: string
   temperatureC: number
+  rawTemperatureC?: number
+  calibrationRevision?: number
   observedAt: string
   sensor: 'MAX6675'
   sensors?: MultiSensorReadings
@@ -42,6 +45,8 @@ export type TelemetryStatus =
 type TelemetryInput = {
   deviceId?: unknown
   temperatureC?: unknown
+  rawTemperatureC?: unknown
+  calibrationRevision?: unknown
   observedAt?: unknown
   sensor?: unknown
   sensors?: unknown
@@ -59,11 +64,17 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
 
   const readings = sensors.thermocouples.map((reading, index) => {
     if (typeof reading !== 'object' || reading === null) return null
-    const item = reading as { id?: unknown; temperatureC?: unknown }
+    const item = reading as { id?: unknown; rawTemperatureC?: unknown; temperatureC?: unknown }
     const expectedId = `max6675-${index + 1}`
     if (item.id !== expectedId || typeof item.temperatureC !== 'number' || !Number.isFinite(item.temperatureC)
       || item.temperatureC < K_TYPE_MIN_C || item.temperatureC > K_TYPE_MAX_C) return null
-    return { id: expectedId as ThermocoupleReading['id'], temperatureC: item.temperatureC }
+    if (item.rawTemperatureC !== undefined && (typeof item.rawTemperatureC !== 'number'
+      || !Number.isFinite(item.rawTemperatureC) || item.rawTemperatureC < K_TYPE_MIN_C || item.rawTemperatureC > K_TYPE_MAX_C)) return null
+    return {
+      id: expectedId as ThermocoupleReading['id'],
+      ...(item.rawTemperatureC === undefined ? {} : { rawTemperatureC: item.rawTemperatureC }),
+      temperatureC: item.temperatureC,
+    }
   })
   if (readings.some(reading => reading === null)) return { ok: false, error: 'leitura MAX6675 inválida' }
 
@@ -120,6 +131,14 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'temperatureC deve ser um número finito entre -200 e 1350' }
   }
 
+  if (payload.rawTemperatureC !== undefined && (typeof payload.rawTemperatureC !== 'number'
+    || !Number.isFinite(payload.rawTemperatureC) || payload.rawTemperatureC < K_TYPE_MIN_C || payload.rawTemperatureC > K_TYPE_MAX_C)) {
+    return { ok: false, error: 'rawTemperatureC deve ser um número finito entre -200 e 1350' }
+  }
+  if (payload.calibrationRevision !== undefined && (!Number.isInteger(payload.calibrationRevision) || (payload.calibrationRevision as number) < 0)) {
+    return { ok: false, error: 'calibrationRevision inválida' }
+  }
+
   if (payload.sensor !== undefined && payload.sensor !== 'MAX6675') {
     return { ok: false, error: 'sensor deve ser MAX6675' }
   }
@@ -142,6 +161,8 @@ export function normalizeTelemetry(payload: TelemetryInput):
     value: {
       deviceId,
       temperatureC: payload.temperatureC,
+      ...(payload.rawTemperatureC === undefined ? {} : { rawTemperatureC: payload.rawTemperatureC }),
+      ...(payload.calibrationRevision === undefined ? {} : { calibrationRevision: payload.calibrationRevision as number }),
       observedAt: payload.observedAt ?? new Date().toISOString(),
       sensor: 'MAX6675',
       ...(sensors ? { sensors: sensors.value } : {}),

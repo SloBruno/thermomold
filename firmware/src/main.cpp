@@ -13,6 +13,7 @@
 #include <mbedtls/sha256.h>
 
 #include "actuators.h"
+#include "calibration.h"
 #include "ota_update.h"
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
@@ -71,6 +72,7 @@ struct DeviceConfig {
 };
 
 DeviceConfig config;
+CalibrationCommand calibration;
 MAX6675 *thermocoupleOne = nullptr;
 MAX6675 *thermocoupleTwo = nullptr;
 WiFiManager wifiManager;
@@ -90,6 +92,13 @@ volatile uint32_t flowPulseCount = 0;
 uint32_t flowTotalPulses = 0;
 uint32_t flowWindowStartedAt = 0;
 float flowLpm = 0.0f;
+
+void initializeCalibration() {
+  calibration.valid = true;
+  calibration.revision = 0;
+  calibration.sensorOne = {{0.0f, 0.0f}, {100.0f, 100.0f}};
+  calibration.sensorTwo = {{0.0f, 0.0f}, {100.0f, 100.0f}};
+}
 
 void IRAM_ATTR onFlowPulse() {
   flowPulseCount = flowPulseCount + 1;
@@ -149,6 +158,19 @@ String defaultDeviceId() {
   return "thermomold-" + String(static_cast<uint32_t>(ESP.getEfuseMac()), HEX);
 }
 
+bool readSensorCalibration(JsonVariantConst source, SensorCalibration &target) {
+  if (source.isNull() || source["low"].isNull() || source["high"].isNull()
+      || source["low"]["rawC"].isNull() || source["low"]["referenceC"].isNull()
+      || source["high"]["rawC"].isNull() || source["high"]["referenceC"].isNull()) return false;
+  target.low.rawC = source["low"]["rawC"] | target.low.rawC;
+  target.low.referenceC = source["low"]["referenceC"] | target.low.referenceC;
+  target.high.rawC = source["high"]["rawC"] | target.high.rawC;
+  target.high.referenceC = source["high"]["referenceC"] | target.high.referenceC;
+  return isfinite(target.low.rawC) && isfinite(target.low.referenceC) &&
+         isfinite(target.high.rawC) && isfinite(target.high.referenceC) &&
+         target.low.rawC != target.high.rawC;
+}
+
 void loadConfig() {
   config.deviceId = defaultDeviceId();
   config.endpoint = defaultTelemetryEndpoint().c_str();
@@ -170,6 +192,16 @@ void loadConfig() {
   config.deviceKey = document["deviceKey"] | "";
   const unsigned long interval = document["reportIntervalMs"] | kDefaultReportIntervalMs;
   if (interval >= 1000) config.reportIntervalMs = interval;
+  const JsonVariantConst calibrationDocument = document["calibration"];
+  const uint32_t revision = calibrationDocument["revision"] | 0U;
+  SensorCalibration sensorOne = calibration.sensorOne;
+  SensorCalibration sensorTwo = calibration.sensorTwo;
+  if (readSensorCalibration(calibrationDocument["sensors"]["max6675-1"], sensorOne) &&
+      readSensorCalibration(calibrationDocument["sensors"]["max6675-2"], sensorTwo)) {
+    calibration.revision = revision;
+    calibration.sensorOne = sensorOne;
+    calibration.sensorTwo = sensorTwo;
+  }
 }
 
 bool saveConfig() {
@@ -180,9 +212,34 @@ bool saveConfig() {
   document["endpoint"] = config.endpoint;
   document["deviceKey"] = config.deviceKey;
   document["reportIntervalMs"] = config.reportIntervalMs;
+  document["calibration"]["revision"] = calibration.revision;
+  document["calibration"]["sensors"]["max6675-1"]["low"]["rawC"] = calibration.sensorOne.low.rawC;
+  document["calibration"]["sensors"]["max6675-1"]["low"]["referenceC"] = calibration.sensorOne.low.referenceC;
+  document["calibration"]["sensors"]["max6675-1"]["high"]["rawC"] = calibration.sensorOne.high.rawC;
+  document["calibration"]["sensors"]["max6675-1"]["high"]["referenceC"] = calibration.sensorOne.high.referenceC;
+  document["calibration"]["sensors"]["max6675-2"]["low"]["rawC"] = calibration.sensorTwo.low.rawC;
+  document["calibration"]["sensors"]["max6675-2"]["low"]["referenceC"] = calibration.sensorTwo.low.referenceC;
+  document["calibration"]["sensors"]["max6675-2"]["high"]["rawC"] = calibration.sensorTwo.high.rawC;
+  document["calibration"]["sensors"]["max6675-2"]["high"]["referenceC"] = calibration.sensorTwo.high.referenceC;
   const bool saved = serializeJson(document, file) > 0;
   file.close();
   return saved;
+}
+
+void applyCalibrationCommand(const String &body) {
+  JsonDocument document;
+  if (deserializeJson(document, body)) return;
+  const JsonVariantConst source = document["commands"]["calibration"];
+  const uint32_t revision = source["revision"] | 0U;
+  if (!calibrationRevisionIsNewer(calibration.revision, revision)) return;
+
+  CalibrationCommand candidate = calibration;
+  candidate.revision = revision;
+  if (!readSensorCalibration(source["sensors"]["max6675-1"], candidate.sensorOne) ||
+      !readSensorCalibration(source["sensors"]["max6675-2"], candidate.sensorTwo)) return;
+  candidate.valid = true;
+  calibration = candidate;
+  if (!saveConfig()) Serial.println("Could not persist MAX6675 calibration.");
 }
 
 void provisionWiFiAndSettings() {
@@ -380,6 +437,7 @@ bool postPayload(const String &payload) {
       return false;
     }
     const PumpCommand command = parsePumpCommand(std::string(body.c_str()));
+    applyCalibrationCommand(body);
     if (command.valid) {
       lastPumpCommandAt = millis();
       hasPumpCommand = true;
@@ -429,10 +487,12 @@ void reportTemperature() {
     Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
   }
   pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()),
-                                             thermocoupleOneC, thermocoupleTwoC,
+                                             applyTemperatureCalibration(thermocoupleOneC, calibration.sensorOne),
+                                             applyTemperatureCalibration(thermocoupleTwoC, calibration.sensorTwo),
                                              levelAvailable ? levelDistanceMm : 0, flowLpm,
                                              litersFromPulses(flowTotalPulses), pump1On,
-                                             pump2On).c_str();
+                                             pump2On, thermocoupleOneC, thermocoupleTwoC,
+                                             calibration.revision).c_str();
   if (postPayload(pendingPayload)) {
     Serial.printf("Telemetry posted: %.2f C, %.2f C, %s, %.2f L/min\n", thermocoupleOneC,
                   thermocoupleTwoC, levelAvailable ? (String(levelDistanceMm) + " mm").c_str() : "level unavailable",
@@ -448,6 +508,7 @@ void reportTemperature() {
 void setup() {
   configurePumpsOff();
   Serial.begin(115200);
+  initializeCalibration();
   // Format a blank/corrupted LittleFS partition so portal settings persist after reset.
   if (!LittleFS.begin(true)) Serial.println("LittleFS unavailable; settings will not persist.");
   loadConfig();
