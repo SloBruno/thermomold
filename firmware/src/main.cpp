@@ -476,9 +476,20 @@ unsigned long readLevelDistanceMm() {
 }
 
 void reportTemperature() {
-  if (thermocoupleOne->read() != 0 || thermocoupleTwo->read() != 0) {
-    Serial.printf("MAX6675 sensor error (status %u, %u); measurement discarded.\n",
+  const uint8_t sensorOneStatus = thermocoupleOne->read();
+  const uint8_t sensorTwoStatus = thermocoupleTwo->read();
+  if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
+    Serial.printf("MAX6675 sensor error (status %u, %u); publishing unavailable readings.\n",
                   thermocoupleOne->getStatus(), thermocoupleTwo->getStatus());
+    pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
+                                               flowLpm, litersFromPulses(flowTotalPulses), pump1On,
+                                               pump2On, 0, 0, calibration.revision).c_str();
+    if (postPayload(pendingPayload)) {
+      pendingPayload = "";
+      retryDelayMs = kInitialRetryDelayMs;
+    } else {
+      scheduleRetry();
+    }
     return;
   }
   const float thermocoupleOneC = thermocoupleOne->getCelsius();
