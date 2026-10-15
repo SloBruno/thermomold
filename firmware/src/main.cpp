@@ -244,7 +244,11 @@ void applyCalibrationCommand(const String &body) {
 
 void provisionWiFiAndSettings() {
   WiFi.setAutoReconnect(true);
+  WiFi.setSleep(false);
   WiFi.persistent(true);
+  // Without a connection timeout WiFiManager can block forever while trying a
+  // saved AP, leaving the ESP neither online nor back in the setup portal.
+  wifiManager.setConnectTimeout(30);
   char deviceId[64], endpoint[160], deviceKey[128], interval[12];
   config.deviceId.toCharArray(deviceId, sizeof(deviceId));
   config.endpoint.toCharArray(endpoint, sizeof(endpoint));

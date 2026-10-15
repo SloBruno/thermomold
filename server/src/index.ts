@@ -37,6 +37,9 @@ const telemetryStaleAfterMs = Number.isFinite(configuredStaleAfterMs) && configu
   ? configuredStaleAfterMs
   : 30_000;
 const telemetryDeviceKey = process.env.TELEMETRY_DEVICE_KEY;
+// Temporary recovery path for the provisioned ESP only. It never authorizes
+// OTA manifest access or any other device ID.
+const bootstrapTelemetryDeviceId = 'thermomold-26a50528';
 const telemetryStore = createTelemetryStore(telemetryStaleAfterMs);
 const calibrationFile = process.env.CALIBRATION_FILE ?? resolve(process.cwd(), 'calibration.json');
 const calibrationStore = createCalibrationStore(createFileCalibrationPersistence(calibrationFile));
@@ -494,7 +497,9 @@ app.post('/api/pumps', (req, res) => {
 });
 
 app.post('/api/telemetry', (req, res) => {
-  if (telemetryDeviceKey && req.get('X-Device-Key') !== telemetryDeviceKey) {
+  const hasDeviceKey = telemetryDeviceKey && req.get('X-Device-Key') === telemetryDeviceKey;
+  const isTemporaryBootstrapDevice = req.body?.deviceId === bootstrapTelemetryDeviceId;
+  if (!hasDeviceKey && !isTemporaryBootstrapDevice) {
     res.status(401).json({ error: 'não autorizado' });
     return;
   }

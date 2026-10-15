@@ -70,9 +70,9 @@ test('OTA manifest requires the configured device key', async t => {
   const authorized = await fetch(url, { headers: { 'X-Device-Key': 'test-device-key' } })
   assert.equal(authorized.status, 200)
   assert.deepEqual(await authorized.json(), {
-    version: '0.1.0',
+    version: '0.1.3',
     url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: '17d2c12fbd5ea5d4ecfa79bfa9b031b52998e6a6306ccab7026e3fc0565e2ff0',
+    sha256: 'bdd1752abbba818a7037d23f1be622a3dcef5d49dafd66cbc470c6af10a2f38b',
   })
 })
 
@@ -84,8 +84,8 @@ test('serves OTA public files under the /ota path', async t => {
   const response = await fetch(`http://127.0.0.1:${port}/ota/manifest.json`)
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), {
-    version: '0.1.0',
+    version: '0.1.3',
     url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: '17d2c12fbd5ea5d4ecfa79bfa9b031b52998e6a6306ccab7026e3fc0565e2ff0',
+    sha256: 'bdd1752abbba818a7037d23f1be622a3dcef5d49dafd66cbc470c6af10a2f38b',
   })
 })

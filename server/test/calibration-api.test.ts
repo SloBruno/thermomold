@@ -60,4 +60,10 @@ test('public calibration API revisions and authenticated telemetry command deliv
   const authenticated = await fetch(`${base}/api/telemetry`, { method: 'POST', headers: { 'content-type': 'application/json', 'X-Device-Key': 'test-device-key' }, body: JSON.stringify(telemetry) })
   assert.equal(authenticated.status, 202)
   assert.equal((await authenticated.json()).commands.calibration.revision, 1)
+
+  const temporaryBootstrap = await fetch(`${base}/api/telemetry`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...telemetry, deviceId: 'thermomold-26a50528' }),
+  })
+  assert.equal(temporaryBootstrap.status, 202)
 })
