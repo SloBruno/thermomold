@@ -47,7 +47,9 @@ inline std::string buildTelemetryPayload(const std::string &deviceId,
 }
 
 inline unsigned long minimumTelemetryIntervalMs() {
-  return 500;
+  // Each sample creates a fresh TLS connection. Keep this rate low enough for
+  // ESP32 heap/socket cleanup and free-tier HTTPS backends to remain stable.
+  return 5000;
 }
 
 inline std::string defaultTelemetryEndpoint() {
