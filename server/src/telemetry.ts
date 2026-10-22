@@ -35,7 +35,7 @@ export interface TelemetrySample {
   sensor: 'MAX6675'
   sensors?: MultiSensorReadings
   pumps?: PumpState
-  diagnostics?: { max6675Status: [number, number]; max6675Raw?: [number, number] }
+  diagnostics?: { max6675Status: [number, number]; max6675Raw?: [number, number]; levelRawMm?: number[] }
   receivedAt: string
 }
 
@@ -157,7 +157,7 @@ export function normalizeTelemetry(payload: TelemetryInput):
 
   const pumps = payload.pumps === undefined ? undefined : normalizePumps(payload.pumps)
   if (pumps && !pumps.ok) return pumps
-  const diagnostics = payload.diagnostics as { max6675Status?: unknown; max6675Raw?: unknown } | undefined
+  const diagnostics = payload.diagnostics as { max6675Status?: unknown; max6675Raw?: unknown; levelRawMm?: unknown } | undefined
   const statuses = diagnostics?.max6675Status
   if (statuses !== undefined && (!Array.isArray(statuses) || statuses.length !== 2
     || !statuses.every(value => Number.isInteger(value) && value >= 0 && value <= 255))) {
@@ -167,6 +167,11 @@ export function normalizeTelemetry(payload: TelemetryInput):
   if (rawFrames !== undefined && (statuses === undefined || !Array.isArray(rawFrames) || rawFrames.length !== 2
     || !rawFrames.every(value => Number.isInteger(value) && value >= 0 && value <= 0xffff))) {
     return { ok: false, error: 'diagnóstico MAX6675 inválido' }
+  }
+  const levelPings = diagnostics?.levelRawMm
+  if (levelPings !== undefined && (statuses === undefined || !Array.isArray(levelPings) || levelPings.length !== 5
+    || !levelPings.every(value => Number.isInteger(value) && value >= 0 && value <= 20000))) {
+    return { ok: false, error: 'diagnóstico de nível inválido' }
   }
 
   return {
@@ -184,6 +189,7 @@ export function normalizeTelemetry(payload: TelemetryInput):
         diagnostics: {
           max6675Status: statuses as [number, number],
           ...(rawFrames === undefined ? {} : { max6675Raw: rawFrames as [number, number] }),
+          ...(levelPings === undefined ? {} : { levelRawMm: levelPings as number[] }),
         },
       }),
     },

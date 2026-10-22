@@ -213,3 +213,14 @@ test('accepts raw MAX6675 frames alongside the status and rejects malformed ones
   }
   assert.equal(normalizeTelemetry({ ...base, diagnostics: { max6675Raw: [0, 776] } }).ok, false)
 })
+
+test('accepts the raw AJ-SR04M pings and rejects malformed ones', () => {
+  const base = { deviceId: 'thermomold-test', temperatureC: 24.25 }
+  const levelRawMm = [0, 0, 150, 271, 8575]
+  const accepted = normalizeTelemetry({ ...base, diagnostics: { max6675Status: [0, 0], levelRawMm } })
+  assert.deepEqual(accepted.ok && accepted.value.diagnostics, { max6675Status: [0, 0], levelRawMm })
+  for (const bad of [[0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, -1], [0, 0, 0, 0, 20001], [0, 0, 0, 0, 1.5], 'x']) {
+    assert.equal(normalizeTelemetry({ ...base, diagnostics: { max6675Status: [0, 0], levelRawMm: bad } }).ok, false)
+  }
+  assert.equal(normalizeTelemetry({ ...base, diagnostics: { levelRawMm } }).ok, false)
+})

@@ -139,6 +139,7 @@ float flowLpm = 0.0f;
 
 LevelBurst levelBurst;
 uint32_t levelDistanceMm = 0;   // last burst median; 0 = unavailable
+uint32_t levelRawMm[kLevelSamplesPerBurst] = {0, 0, 0, 0, 0};  // last burst pings; 0 = no echo
 uint32_t levelWorstPingUs = 0;  // longest single ping since boot (loop blocking)
 
 void initializeCalibration() {
@@ -539,6 +540,7 @@ void updateLevel(unsigned long now) {
   levelBurstRecord(levelBurst, millis(), pingLevelDistanceMm());
   if (levelBurstComplete(levelBurst)) {
     levelDistanceMm = levelBurstResultMm(levelBurst);
+    for (size_t index = 0; index < kLevelSamplesPerBurst; ++index) levelRawMm[index] = levelBurst.samples[index];
     levelBurst.active = false;
   }
 }
@@ -551,7 +553,9 @@ void reportTemperature() {
   const uint8_t sensorOneStatus = sensorOne.status;
   const uint8_t sensorTwoStatus = sensorTwo.status;
   const String diagnostics = String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," +
-                             sensorTwoStatus + "],\"max6675Raw\":[" + rawOne + "," + rawTwo + "]}";
+                             sensorTwoStatus + "],\"max6675Raw\":[" + rawOne + "," + rawTwo + "],\"levelRawMm\":[" +
+                             levelRawMm[0] + "," + levelRawMm[1] + "," + levelRawMm[2] + "," + levelRawMm[3] + "," +
+                             levelRawMm[4] + "]}";
   if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
     Serial.printf("MAX6675 sensor error (status %u, %u, raw 0x%04X, 0x%04X); publishing unavailable readings.\n",
                   sensorOneStatus, sensorTwoStatus, rawOne, rawTwo);
@@ -637,5 +641,6 @@ void loop() {
     nextReportAt = now + minimumTelemetryIntervalMs();
     reportTemperature();
     levelDistanceMm = 0;  // each report uses a fresh 5-ping median or reports unavailable
+    for (size_t index = 0; index < kLevelSamplesPerBurst; ++index) levelRawMm[index] = 0;
   }
 }
