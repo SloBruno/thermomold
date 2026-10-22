@@ -77,9 +77,11 @@ void test_flow_pulses_accumulate_to_liters() {
 }
 
 void test_pump_command_expires_after_timeout_including_millis_rollover() {
-  TEST_ASSERT_FALSE(pumpCommandExpired(1000, 3999, 3000));
-  TEST_ASSERT_TRUE(pumpCommandExpired(1000, 4001, 3000));
-  TEST_ASSERT_FALSE(pumpCommandExpired(0xFFFFFF00UL, 0x00000100UL, 3000));
+  TEST_ASSERT_EQUAL_UINT32(8000, kPumpCommandTimeoutMs);
+  TEST_ASSERT_TRUE(kPumpCommandTimeoutMs > minimumTelemetryIntervalMs());
+  TEST_ASSERT_FALSE(pumpCommandExpired(1000, 8999, kPumpCommandTimeoutMs));
+  TEST_ASSERT_TRUE(pumpCommandExpired(1000, 9001, kPumpCommandTimeoutMs));
+  TEST_ASSERT_FALSE(pumpCommandExpired(0xFFFFFF00UL, 0x00001E00UL, kPumpCommandTimeoutMs));
 }
 
 void test_parse_pump_command_reads_both_pumps_from_response() {

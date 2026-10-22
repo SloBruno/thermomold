@@ -211,7 +211,7 @@ Tecnologias principais:
 As saídas de relé são configuradas para desligado antes de abrir o portal Wi-Fi. Durante a execução:
 
 - Se o Wi-Fi cair, ambas as bombas são desligadas.
-- Se um comando válido do backend não chegar por 3 segundos, ambas as bombas são desligadas.
+- Se um comando válido do backend não chegar por 8 segundos, ambas as bombas são desligadas. O ESP32 envia telemetria a cada 5 s; o timeout é maior para não desligar e religar o relé entre dois comandos normais.
 - Se a resposta de telemetria não trouxer comando de bombas válido, ambas as bombas permanecem desligadas.
 
 O HW-383 pode ser ativo-alto ou ativo-baixo. O firmware está configurado inicialmente como ativo-alto por `kRelayActiveLevel = HIGH`. Faça o teste sem as bombas e inverta para `LOW` se os LEDs/relés ligarem ao iniciar.

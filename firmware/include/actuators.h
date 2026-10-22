@@ -6,8 +6,11 @@
 // ZJ-S201 (YF-S201 family): pulse frequency Hz = 7.5 * flow L/min.
 // Calibrate this constant against a measured volume if readings drift.
 constexpr float kFlowPulsesPerSecondPerLpm = 7.5f;
-// Default pump command timeout: no successful backend response for this long -> pumps OFF.
-constexpr unsigned long kPumpCommandTimeoutMs = 3000;
+// Telemetry posts every 5 s (minimumTelemetryIntervalMs). A 3 s command timeout
+// previously turned a commanded pump OFF for ~2 s before the next command arrived,
+// producing a repeating relay click. Eight seconds leaves 3 s of transport margin
+// while still failing safe after a missed response. Wi-Fi loss remains immediate.
+constexpr unsigned long kPumpCommandTimeoutMs = 8000;
 
 inline float flowLitersPerMinute(unsigned long pulses, unsigned long windowMs) {
   if (windowMs == 0) return 0.0f;
