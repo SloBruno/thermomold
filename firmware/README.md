@@ -23,7 +23,9 @@ PlatformIO/Arduino firmware for an ESP32 connected to two MAX6675 K-type thermoc
 | All modules | VCC | 3.3V |
 | All modules | GND | GND |
 
-The MAX6675 buses are software SPI and are deliberately fixed to this wiring. The AJ-SR04M is triggered with a 10 µs pulse and its round-trip echo is converted to millimetres using 0.343 mm/µs. MAX6675 only measures non-negative Celsius temperatures.
+The MAX6675 buses are software SPI and are deliberately fixed to this wiring. The AJ-SR04M is triggered with a 20 µs pulse (datasheet minimum 10 µs) and its round-trip echo is converted to millimetres using 0.343 mm/µs. Each report uses the median of 5 pings spaced 70 ms apart (one ping per `loop()` pass, so the burst never blocks as a whole); readings below the 20 cm blind zone or above the 8 m maximum range (AJ-SR04M user manual, mode table) are discarded, and fewer than 3 valid pings reports the level as unavailable. A single ping blocks `loop()` for at most ~50 ms (echo timeout).
+
+The ZJ-S201 flow ISR ignores any FALLING edge that arrives less than 2 ms after the previous edge (30 L/min = 225 Hz = 4.4 ms period). A window counts as flow only if it is ≥ 1 L/min, its pulses span at least half the window with no gap > 250 ms, and the next window also qualifies; isolated bursts never reach `totalLiters`. This filter does not replace correct wiring: common GND, the 10k/20k divider at the ESP input, and the signal wire routed away from relay/pump wiring. MAX6675 only measures non-negative Celsius temperatures.
 
 ## Build and upload
 

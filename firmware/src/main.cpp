@@ -9,11 +9,14 @@
 #include <WiFiClientSecure.h>
 #include <WiFiManager.h>
 #include <cmath>
+#include <esp_timer.h>
 #include <ctime>
 #include <mbedtls/sha256.h>
 
 #include "actuators.h"
 #include "calibration.h"
+#include "flow_filter.h"
+#include "level_filter.h"
 #include "ota_update.h"
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
@@ -33,7 +36,6 @@ constexpr uint8_t kFlowSensorPin = 34;  // ZJ-S201 signal via 10k/20k divider
 // HW-383 variants exist as active-high or active-low; flip this if a relay
 // clicks ON at boot or the LEDs are inverted during the bench test.
 constexpr uint8_t kRelayActiveLevel = HIGH;
-constexpr unsigned long kLevelEchoTimeoutUs = 30000;
 constexpr unsigned long kDefaultReportIntervalMs = 500;
 constexpr unsigned long kReconnectIntervalMs = 10000;
 constexpr unsigned long kInitialRetryDelayMs = 2000;
@@ -88,10 +90,16 @@ bool pump2On = false;
 uint32_t lastPumpCommandAt = 0;
 bool hasPumpCommand = false;
 
-volatile uint32_t flowPulseCount = 0;
-uint32_t flowTotalPulses = 0;
+// Shared with the flow ISR; always accessed under flowMux.
+FlowPulseFilter flowFilter;
+portMUX_TYPE flowMux = portMUX_INITIALIZER_UNLOCKED;
+FlowMeter flowMeter;
 uint32_t flowWindowStartedAt = 0;
 float flowLpm = 0.0f;
+
+LevelBurst levelBurst;
+uint32_t levelDistanceMm = 0;   // last burst median; 0 = unavailable
+uint32_t levelWorstPingUs = 0;  // longest single ping since boot (loop blocking)
 
 void initializeCalibration() {
   calibration.valid = true;
@@ -101,7 +109,12 @@ void initializeCalibration() {
 }
 
 void IRAM_ATTR onFlowPulse() {
-  flowPulseCount = flowPulseCount + 1;
+  // Same clock as micros(), but esp_timer_get_time() is IRAM-resident while this core's
+  // micros() is in flash; an IRAM ISR must not touch flash (e.g. during OTA writes).
+  const uint32_t nowUs = static_cast<uint32_t>(esp_timer_get_time());
+  portENTER_CRITICAL_ISR(&flowMux);
+  flowPulseEdge(flowFilter, nowUs);
+  portEXIT_CRITICAL_ISR(&flowMux);
 }
 
 uint8_t relayLevel(bool on) {
@@ -145,12 +158,11 @@ void updateFlow() {
   const uint32_t now = millis();
   const uint32_t windowMs = now - flowWindowStartedAt;
   if (windowMs < 1000) return;
-  noInterrupts();
-  const uint32_t pulses = flowPulseCount;
-  flowPulseCount = 0;
-  interrupts();
-  flowTotalPulses += pulses;
-  flowLpm = flowLitersPerMinute(pulses, windowMs);
+  portENTER_CRITICAL(&flowMux);
+  const FlowWindow window = takeFlowWindow(flowFilter, windowMs);
+  portEXIT_CRITICAL(&flowMux);
+  flowMeterUpdate(flowMeter, window);
+  flowLpm = flowMeter.lpm;
   flowWindowStartedAt = now;
 }
 
@@ -466,13 +478,33 @@ void scheduleRetry() {
   retryDelayMs = min(retryDelayMs * 2, kMaximumRetryDelayMs);
 }
 
-unsigned long readLevelDistanceMm() {
+// One AJ-SR04M ping. Blocks for at most ~kLevelEchoTimeoutUs (50 ms) when no echo arrives.
+uint32_t pingLevelDistanceMm() {
+  const uint32_t startedUs = micros();
   digitalWrite(kLevelTriggerPin, LOW);
   delayMicroseconds(2);
   digitalWrite(kLevelTriggerPin, HIGH);
-  delayMicroseconds(10);
+  delayMicroseconds(kLevelTriggerPulseUs);
   digitalWrite(kLevelTriggerPin, LOW);
-  return distanceMmFromEchoUs(pulseIn(kLevelEchoPin, HIGH, kLevelEchoTimeoutUs));
+  const uint32_t distanceMm = distanceMmFromEchoUs(pulseIn(kLevelEchoPin, HIGH, kLevelEchoTimeoutUs));
+  const uint32_t elapsedUs = micros() - startedUs;
+  if (elapsedUs > levelWorstPingUs) {
+    levelWorstPingUs = elapsedUs;
+    Serial.printf("AJ-SR04M worst single ping so far: %.1f ms\n", elapsedUs / 1000.0f);
+  }
+  return distanceMm;
+}
+
+// Non-blocking level burst: one ping per loop() pass, >= 70 ms apart, started ~1 s
+// before each report so the median of 5 pings is fresh when telemetry is built.
+void updateLevel(unsigned long now) {
+  if (!levelBurst.active && static_cast<long>(nextReportAt - now) <= 1000) levelBurstStart(levelBurst);
+  if (!levelBurstPingDue(levelBurst, now)) return;
+  levelBurstRecord(levelBurst, millis(), pingLevelDistanceMm());
+  if (levelBurstComplete(levelBurst)) {
+    levelDistanceMm = levelBurstResultMm(levelBurst);
+    levelBurst.active = false;
+  }
 }
 
 void reportTemperature() {
@@ -482,7 +514,7 @@ void reportTemperature() {
     Serial.printf("MAX6675 sensor error (status %u, %u); publishing unavailable readings.\n",
                   thermocoupleOne->getStatus(), thermocoupleTwo->getStatus());
     pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
-                                               flowLpm, litersFromPulses(flowTotalPulses), pump1On,
+                                               flowLpm, litersFromPulses(flowMeter.totalPulses), pump1On,
                                                pump2On, 0, 0, calibration.revision).c_str();
     pendingPayload.remove(pendingPayload.length() - 1);
     pendingPayload += String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," + sensorTwoStatus + "]}";
@@ -501,7 +533,6 @@ void reportTemperature() {
     Serial.println("MAX6675 produced an invalid temperature; measurement discarded.");
     return;
   }
-  const unsigned long levelDistanceMm = readLevelDistanceMm();
   const bool levelAvailable = isValidLevelDistanceMm(levelDistanceMm);
   if (!levelAvailable) {
     Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
@@ -510,7 +541,7 @@ void reportTemperature() {
                                              applyTemperatureCalibration(thermocoupleOneC, calibration.sensorOne),
                                              applyTemperatureCalibration(thermocoupleTwoC, calibration.sensorTwo),
                                              levelAvailable ? levelDistanceMm : 0, flowLpm,
-                                             litersFromPulses(flowTotalPulses), pump1On,
+                                             litersFromPulses(flowMeter.totalPulses), pump1On,
                                              pump2On, thermocoupleOneC, thermocoupleTwoC,
                                              calibration.revision).c_str();
   if (postPayload(pendingPayload)) {
@@ -558,8 +589,10 @@ void loop() {
       scheduleRetry();
     }
   }
+  updateLevel(now);
   if (pendingPayload.isEmpty() && now >= nextReportAt) {
     nextReportAt = now + minimumTelemetryIntervalMs();
     reportTemperature();
+    levelDistanceMm = 0;  // each report uses a fresh 5-ping median or reports unavailable
   }
 }
