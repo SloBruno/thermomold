@@ -32,6 +32,7 @@ type TelemetrySample = {
     flow?: FlowReading
   }
   pumps?: { pump1: boolean; pump2: boolean }
+  diagnostics?: { max6675Status: [number, number] }
   receivedAt: string
 }
 
@@ -49,6 +50,13 @@ type ChartPoint = {
 }
 
 const apiBaseUrl = import.meta.env.VITE_SOCKET_URL || ''
+
+function describeMax6675Status(status: number): string {
+  if (status === 0x81) return 'sem comunicação'
+  if (status === 0x04) return 'termopar aberto'
+  if (status === 0x80) return 'sem leitura'
+  return 'falha de leitura'
+}
 
 function formatTimestamp(timestamp: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -107,6 +115,10 @@ export default function RealSensorPage() {
   }, [telemetry?.sample?.observedAt])
 
   const sample = telemetry?.sample
+  const max6675Warnings = (sample?.diagnostics?.max6675Status ?? [])
+    .map((status, index) => ({ status, index }))
+    .filter(({ status }) => status !== 0)
+    .map(({ status, index }) => `MAX6675 #${index + 1}: ${describeMax6675Status(status)} (status ${status})`)
   const statusLabel = error
     ? 'Erro de conexão'
     : telemetry?.status === 'online'
@@ -131,6 +143,12 @@ export default function RealSensorPage() {
         <div className={`rounded-xl border p-4 text-sm font-bold ${statusClasses}`}>
           Status da conexão: {statusLabel}
         </div>
+
+        {!error && max6675Warnings.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800" role="alert">
+            {max6675Warnings.map(warning => <p key={warning}>{warning}</p>)}
+          </div>
+        )}
 
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-800">{error}</div>

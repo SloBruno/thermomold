@@ -183,3 +183,21 @@ test('normalizes corrected MAX6675 values with raw readings and calibration revi
     assert.deepEqual(result.value.sensors?.thermocouples[1], { id: 'max6675-2', rawTemperatureC: 90, temperatureC: 89 })
   }
 })
+
+test('accepts optional MAX6675 diagnostics and rejects malformed ones', () => {
+  const base = { deviceId: 'esp32-molde-01', temperatureC: 0, sensor: 'MAX6675' }
+  const accepted = normalizeTelemetry({ ...base, diagnostics: { max6675Status: [0, 129] } })
+  assert.equal(accepted.ok, true)
+  assert.deepEqual(accepted.ok && accepted.value.diagnostics, { max6675Status: [0, 129] })
+
+  const withoutDiagnostics = normalizeTelemetry(base)
+  assert.equal(withoutDiagnostics.ok, true)
+  assert.equal(withoutDiagnostics.ok && 'diagnostics' in withoutDiagnostics.value, false)
+
+  for (const max6675Status of [[0], [0, 1, 2], [0, 256], [-1, 0], [0, 1.5], ['0', 0], 'x']) {
+    assert.deepEqual(normalizeTelemetry({ ...base, diagnostics: { max6675Status } }), {
+      ok: false,
+      error: 'diagnóstico MAX6675 inválido',
+    })
+  }
+})

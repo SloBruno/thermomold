@@ -484,6 +484,9 @@ void reportTemperature() {
     pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
                                                flowLpm, litersFromPulses(flowTotalPulses), pump1On,
                                                pump2On, 0, 0, calibration.revision).c_str();
+    pendingPayload.remove(pendingPayload.length() - 1);
+    pendingPayload += String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," + sensorTwoStatus + "]}";
+    pendingPayload += "}";
     if (postPayload(pendingPayload)) {
       pendingPayload = "";
       retryDelayMs = kInitialRetryDelayMs;

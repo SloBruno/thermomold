@@ -35,6 +35,7 @@ export interface TelemetrySample {
   sensor: 'MAX6675'
   sensors?: MultiSensorReadings
   pumps?: PumpState
+  diagnostics?: { max6675Status: [number, number] }
   receivedAt: string
 }
 
@@ -51,6 +52,7 @@ type TelemetryInput = {
   sensor?: unknown
   sensors?: unknown
   pumps?: unknown
+  diagnostics?: unknown
 }
 
 type NormalizedTelemetry = Omit<TelemetrySample, 'receivedAt'>
@@ -155,6 +157,12 @@ export function normalizeTelemetry(payload: TelemetryInput):
 
   const pumps = payload.pumps === undefined ? undefined : normalizePumps(payload.pumps)
   if (pumps && !pumps.ok) return pumps
+  const diagnostics = payload.diagnostics as { max6675Status?: unknown } | undefined
+  const statuses = diagnostics?.max6675Status
+  if (statuses !== undefined && (!Array.isArray(statuses) || statuses.length !== 2
+    || !statuses.every(value => Number.isInteger(value) && value >= 0 && value <= 255))) {
+    return { ok: false, error: 'diagnóstico MAX6675 inválido' }
+  }
 
   return {
     ok: true,
@@ -167,6 +175,7 @@ export function normalizeTelemetry(payload: TelemetryInput):
       sensor: 'MAX6675',
       ...(sensors ? { sensors: sensors.value } : {}),
       ...(pumps ? { pumps: pumps.value } : {}),
+      ...(statuses === undefined ? {} : { diagnostics: { max6675Status: statuses as [number, number] } }),
     },
   }
 }
