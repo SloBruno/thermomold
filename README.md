@@ -224,7 +224,66 @@ A conversão inicial usa a constante de família YF/ZJ-S201:
 frequência de pulsos (Hz) = 7,5 × vazão (L/min)
 ```
 
-Ela é um ponto de partida. Calibre com um volume conhecido e ajuste `kFlowPulsesPerLiterPerMinute` em [`firmware/include/actuators.h`](firmware/include/actuators.h) se o sensor físico divergir.
+Ela é um ponto de partida. Calibre com um volume conhecido e ajuste `kFlowPulsesPerSecondPerLpm` em [`firmware/include/actuators.h`](firmware/include/actuators.h) se o sensor físico divergir.
+
+#### Filtro de pulsos falsos (desde 0.1.6)
+
+O sinal do ZJ-S201 chega ao D34, que não tem resistor de pull interno. Ruído dos relés e das bombas, ou um fio solto, gera bordas falsas. O firmware filtra em duas etapas ([`firmware/include/flow_filter.h`](firmware/include/flow_filter.h)):
+
+1. **Intervalo mínimo de 2 ms entre bordas.** A interrupção ignora qualquer borda de descida que chegue menos de 2 ms depois da anterior, contada ou não. A 30 L/min o sensor gera 225 Hz, um período de 4,4 ms, então há folga de 2,2×. O limite aceita até 500 Hz (~66 L/min). A interrupção usa `esp_timer_get_time()`, que fica em RAM, para continuar segura enquanto o OTA grava a flash.
+2. **Confirmação de vazão.** Uma janela de 1 s só conta como vazão se:
+   - medir pelo menos 1 L/min;
+   - tiver os pulsos espalhados por pelo menos metade da janela;
+   - não tiver intervalo maior que 250 ms entre pulsos;
+   - e a janela seguinte também passar nos mesmos critérios.
+
+   Os pulsos da primeira janela ficam guardados e entram no total quando a vazão é confirmada, então a vazão real não se perde. Rajadas isoladas e vazão abaixo de 1 L/min não somam em `totalLiters`.
+
+Efeitos colaterais:
+
+- A vazão real aparece 1 a 2 s depois de começar.
+- Um fluxo com menos de ~2 s, como um sopro curto no sensor, não é registrado.
+
+**O filtro não substitui a fiação correta.** Interferência que gere pulsos espaçados como uma vazão lenta de verdade passa pelo filtro, e software nenhum consegue separar os dois casos. Mantenha:
+
+- o GND do sensor comum ao do ESP32;
+- o divisor 10 kΩ / 20 kΩ perto da entrada D34;
+- o fio de sinal longe dos fios dos relés e das bombas, de preferência trançado com GND ou blindado.
+
+Para conferir: com as duas bombas desligadas, a vazão deve ficar em 0 e `totalLiters` não deve subir.
+
+### Nível AJ-SR04M (desde 0.1.6)
+
+Cada leitura de nível usa uma série de 5 medições ([`firmware/include/level_filter.h`](firmware/include/level_filter.h)):
+
+- disparo de 20 µs (o datasheet pede no mínimo 10 µs);
+- 5 pings espaçados de 70 ms, um por passada do `loop()`, para a série não bloquear o laço inteiro;
+- descarte de medições abaixo da zona cega de 20 cm e acima do alcance de 8 m, conforme a tabela de modos do manual do AJ-SR04M;
+- o valor publicado é a mediana das medições válidas;
+- com menos de 3 medições válidas, o nível é publicado como indisponível.
+
+Cada ping bloqueia o `loop()` por no máximo ~50 ms, que é o timeout do eco para 8 m ida e volta. Esse valor vem do código e não foi medido na placa. O firmware imprime na serial o pior ping desde o boot (`AJ-SR04M worst single ping so far`).
+
+### Diagnóstico dos termopares MAX6675 (desde 0.1.5)
+
+Quando a leitura de algum MAX6675 falha, a telemetria não é descartada. O ESP32 publica as temperaturas como indisponíveis e acrescenta o status de cada módulo:
+
+```json
+"diagnostics": { "max6675Status": [0, 129] }
+```
+
+A ordem é `[MAX6675 #1, MAX6675 #2]`. Os códigos vêm da biblioteca `robtillaart/MAX6675`:
+
+| Status | Hex | Significado | Causa provável |
+|---|---|---|---|
+| 0 | `0x00` | OK | — |
+| 4 | `0x04` | Termopar aberto | termopar desconectado ou com o fio rompido |
+| 128 | `0x80` | Sem leitura | nenhuma leitura feita ainda |
+| 129 | `0x81` | Sem comunicação | o ESP32 leu `0xFFFF` no SO: fio SO, SCK ou CS solto ou trocado, ou módulo sem alimentação |
+
+Sem falha, o campo `diagnostics` não aparece na telemetria.
+
+Não calibre um termopar enquanto ele mostrar status diferente de 0 ou leituras instáveis. A calibração só corrige um erro linear e estável; ela não corrige mau contato nem módulo com defeito.
 
 ### Compilar, testar e gravar
 
@@ -275,7 +334,7 @@ O backend usa Express, Socket.IO e TypeScript. Ele valida as leituras, mantém a
 }
 ```
 
-A amostra também inclui `rawTemperatureC` (legado do sensor 1) e `calibrationRevision`; cada termopar inclui seu próprio `rawTemperatureC` e temperatura corrigida. A resposta autenticada do ESP32 inclui `commands.pumps` e `commands.calibration`. O ESP32 só aplica uma revisão maior que a gravada e persiste o comando em LittleFS.
+A amostra também inclui `rawTemperatureC` (legado do sensor 1) e `calibrationRevision`; cada termopar inclui seu próprio `rawTemperatureC` e temperatura corrigida. Quando um MAX6675 falha, a amostra inclui também `diagnostics.max6675Status` (veja [Diagnóstico dos termopares](#diagnóstico-dos-termopares-max6675-desde-015)); o servidor aceita só uma lista de dois inteiros entre 0 e 255 e rejeita qualquer outro formato. A resposta autenticada do ESP32 inclui `commands.pumps` e `commands.calibration`. O ESP32 só aplica uma revisão maior que a gravada e persiste o comando em LittleFS.
 
 ### Calibração de dois pontos
 
@@ -308,7 +367,7 @@ O dashboard é React + TypeScript + Vite e usa HashRouter, permitindo rotas est�
 Principais telas:
 
 - **Simulador:** cenário de refrigeração e falhas simuladas.
-- **Sensor Real:** temperaturas, distância de nível, vazão e estado confirmado das bombas.
+- **Sensor Real:** temperaturas, distância de nível, vazão e estado confirmado das bombas. Quando a telemetria traz `diagnostics.max6675Status` com valor diferente de 0, a tela mostra um aviso amarelo por termopar, por exemplo `MAX6675 #2: sem comunicação (status 129)`. Mapeamento: `0x81` sem comunicação, `0x04` termopar aberto, `0x80` sem leitura; qualquer outro valor aparece como "falha de leitura".
 - **Calibração:** wizard público para os dois pontos de cada MAX6675 e revisão atualmente salva.
 - **Bombas:** comando manual e comparação entre o estado desejado e o último estado confirmado pelo ESP32.
 
