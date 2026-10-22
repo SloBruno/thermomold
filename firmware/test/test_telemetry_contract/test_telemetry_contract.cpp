@@ -84,6 +84,16 @@ void test_pump_command_expires_after_timeout_including_millis_rollover() {
   TEST_ASSERT_FALSE(pumpCommandExpired(0xFFFFFF00UL, 0x00001E00UL, kPumpCommandTimeoutMs));
 }
 
+void test_parse_pump_command_uses_commands_not_stale_sample() {
+  const std::string body =
+      "{\"sample\":{\"pumps\":{\"pump1\":false,\"pump2\":false}},"
+      "\"commands\":{\"pumps\":{\"pump1\":true,\"pump2\":false}}}";
+  PumpCommand command = parsePumpCommand(body);
+  TEST_ASSERT_TRUE(command.valid);
+  TEST_ASSERT_TRUE(command.pump1);
+  TEST_ASSERT_FALSE(command.pump2);
+}
+
 void test_parse_pump_command_reads_both_pumps_from_response() {
   PumpCommand command = parsePumpCommand(
       "{\"accepted\":true,\"commands\":{\"pumps\":{\"pump1\":true,\"pump2\":false}}}");
@@ -161,6 +171,7 @@ int main(int, char **) {
   RUN_TEST(test_flow_converts_pulses_in_a_window_to_liters_per_minute);
   RUN_TEST(test_flow_pulses_accumulate_to_liters);
   RUN_TEST(test_pump_command_expires_after_timeout_including_millis_rollover);
+  RUN_TEST(test_parse_pump_command_uses_commands_not_stale_sample);
   RUN_TEST(test_parse_pump_command_reads_both_pumps_from_response);
   RUN_TEST(test_parse_pump_command_fails_safe_when_missing_or_garbled);
   RUN_TEST(test_ota_manifest_accepts_only_a_newer_https_version_with_sha256);

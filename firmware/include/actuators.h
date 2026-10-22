@@ -46,17 +46,22 @@ inline int readBool(const std::string &object, const std::string &key) {
 }
 }  // namespace pump_command_detail
 
-// Parses {"commands":{"pumps":{"pump1":bool,"pump2":bool}}} from the backend response.
-// Any missing or malformed field yields an invalid, all-off command (fail-safe).
+// Parses only commands.pumps from the backend response. The response also carries
+// sample.pumps (the ESP's prior state); searching the first "pumps" object used that
+// stale sample and silently ignored every new command.
+// Any missing or malformed command yields an invalid, all-off command (fail-safe).
 inline PumpCommand parsePumpCommand(const std::string &body) {
   PumpCommand command;
-  const std::string marker = "\"pumps\":{";
-  const size_t start = body.find(marker);
+  const std::string commandsMarker = "\"commands\":{";
+  const size_t commandsStart = body.find(commandsMarker);
+  if (commandsStart == std::string::npos) return command;
+  const std::string pumpsMarker = "\"pumps\":{";
+  const size_t start = body.find(pumpsMarker, commandsStart + commandsMarker.size());
   if (start == std::string::npos) return command;
-  const size_t end = body.find('}', start + marker.size());
+  const size_t end = body.find('}', start + pumpsMarker.size());
   if (end == std::string::npos) return command;
 
-  const std::string object = body.substr(start + marker.size(), end - start - marker.size());
+  const std::string object = body.substr(start + pumpsMarker.size(), end - start - pumpsMarker.size());
   const int pump1 = pump_command_detail::readBool(object, "pump1");
   const int pump2 = pump_command_detail::readBool(object, "pump2");
   if (pump1 < 0 || pump2 < 0) return command;
