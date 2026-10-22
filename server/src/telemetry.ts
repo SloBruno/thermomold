@@ -35,7 +35,7 @@ export interface TelemetrySample {
   sensor: 'MAX6675'
   sensors?: MultiSensorReadings
   pumps?: PumpState
-  diagnostics?: { max6675Status: [number, number] }
+  diagnostics?: { max6675Status: [number, number]; max6675Raw?: [number, number] }
   receivedAt: string
 }
 
@@ -157,10 +157,15 @@ export function normalizeTelemetry(payload: TelemetryInput):
 
   const pumps = payload.pumps === undefined ? undefined : normalizePumps(payload.pumps)
   if (pumps && !pumps.ok) return pumps
-  const diagnostics = payload.diagnostics as { max6675Status?: unknown } | undefined
+  const diagnostics = payload.diagnostics as { max6675Status?: unknown; max6675Raw?: unknown } | undefined
   const statuses = diagnostics?.max6675Status
   if (statuses !== undefined && (!Array.isArray(statuses) || statuses.length !== 2
     || !statuses.every(value => Number.isInteger(value) && value >= 0 && value <= 255))) {
+    return { ok: false, error: 'diagnóstico MAX6675 inválido' }
+  }
+  const rawFrames = diagnostics?.max6675Raw
+  if (rawFrames !== undefined && (statuses === undefined || !Array.isArray(rawFrames) || rawFrames.length !== 2
+    || !rawFrames.every(value => Number.isInteger(value) && value >= 0 && value <= 0xffff))) {
     return { ok: false, error: 'diagnóstico MAX6675 inválido' }
   }
 
@@ -175,7 +180,12 @@ export function normalizeTelemetry(payload: TelemetryInput):
       sensor: 'MAX6675',
       ...(sensors ? { sensors: sensors.value } : {}),
       ...(pumps ? { pumps: pumps.value } : {}),
-      ...(statuses === undefined ? {} : { diagnostics: { max6675Status: statuses as [number, number] } }),
+      ...(statuses === undefined ? {} : {
+        diagnostics: {
+          max6675Status: statuses as [number, number],
+          ...(rawFrames === undefined ? {} : { max6675Raw: rawFrames as [number, number] }),
+        },
+      }),
     },
   }
 }

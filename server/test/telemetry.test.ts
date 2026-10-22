@@ -201,3 +201,15 @@ test('accepts optional MAX6675 diagnostics and rejects malformed ones', () => {
     })
   }
 })
+
+test('accepts raw MAX6675 frames alongside the status and rejects malformed ones', () => {
+  const base = { deviceId: 'thermomold-test', temperatureC: 24.25 }
+  const accepted = normalizeTelemetry({ ...base, diagnostics: { max6675Status: [129, 0], max6675Raw: [0, 776] } })
+  assert.equal(accepted.ok, true)
+  assert.deepEqual(accepted.ok && accepted.value.diagnostics, { max6675Status: [129, 0], max6675Raw: [0, 776] })
+
+  for (const max6675Raw of [[0], [0, 1, 2], [0, 65536], [-1, 0], [0, 1.5], ['0', 0], 'x']) {
+    assert.equal(normalizeTelemetry({ ...base, diagnostics: { max6675Status: [0, 0], max6675Raw } }).ok, false)
+  }
+  assert.equal(normalizeTelemetry({ ...base, diagnostics: { max6675Raw: [0, 776] } }).ok, false)
+})

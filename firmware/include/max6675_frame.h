@@ -25,10 +25,12 @@ struct Max6675Reading {
   float celsius;
 };
 
-// A frame with the always-zero bits D15 or D1 set, or the all-ones word of a
-// floating SO line, cannot come from a healthy transfer.
+// A frame with the always-zero bits D15 or D1 set, the all-ones word of a
+// floating SO line, or the all-zero word of an SO line held low (module not
+// driving it) cannot come from a healthy transfer. 0x0000 would otherwise decode
+// as a plausible 0.00 C, which a mould at room temperature never reads exactly.
 inline Max6675Reading decodeMax6675Frame(uint16_t raw) {
-  if (raw == 0xFFFF || (raw & 0x8000u) != 0 || (raw & 0x0002u) != 0) {
+  if (raw == 0xFFFF || raw == 0x0000 || (raw & 0x8000u) != 0 || (raw & 0x0002u) != 0) {
     return {kMax6675StatusNoCommunication, 0.0f};
   }
   if ((raw & 0x0004u) != 0) return {kMax6675StatusOpen, 0.0f};

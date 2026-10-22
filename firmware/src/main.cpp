@@ -89,7 +89,12 @@ constexpr Max6675Pins kThermocoupleTwoPins = {kThermocoupleTwoSckPin, kThermocou
 // read MAX6675 #1 as ~110 C at room temperature (tools/max6675_diag variants A/B), while this
 // timing read both modules correctly (variants C/D): CS low, wait tCSS, then sample SO with
 // SCK low, each bit settling >= 5 us after the falling edge that presented it.
+void configureMax6675Pins(const Max6675Pins &pins);
+
 uint16_t readMax6675Frame(const Max6675Pins &pins) {
+  // Re-assert the bus pin modes on every read so nothing configured after boot
+  // (Wi-Fi, OTA, other peripherals) can leave SCK/CS/SO in another mode.
+  configureMax6675Pins(pins);
   uint16_t raw = 0;
   digitalWrite(pins.sck, LOW);
   digitalWrite(pins.cs, LOW);
@@ -539,19 +544,22 @@ void updateLevel(unsigned long now) {
 }
 
 void reportTemperature() {
-  const Max6675Reading sensorOne = decodeMax6675Frame(readMax6675Frame(kThermocoupleOnePins));
-  const Max6675Reading sensorTwo = decodeMax6675Frame(readMax6675Frame(kThermocoupleTwoPins));
+  const uint16_t rawOne = readMax6675Frame(kThermocoupleOnePins);
+  const uint16_t rawTwo = readMax6675Frame(kThermocoupleTwoPins);
+  const Max6675Reading sensorOne = decodeMax6675Frame(rawOne);
+  const Max6675Reading sensorTwo = decodeMax6675Frame(rawTwo);
   const uint8_t sensorOneStatus = sensorOne.status;
   const uint8_t sensorTwoStatus = sensorTwo.status;
+  const String diagnostics = String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," +
+                             sensorTwoStatus + "],\"max6675Raw\":[" + rawOne + "," + rawTwo + "]}";
   if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
-    Serial.printf("MAX6675 sensor error (status %u, %u); publishing unavailable readings.\n",
-                  sensorOneStatus, sensorTwoStatus);
+    Serial.printf("MAX6675 sensor error (status %u, %u, raw 0x%04X, 0x%04X); publishing unavailable readings.\n",
+                  sensorOneStatus, sensorTwoStatus, rawOne, rawTwo);
     pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
                                                flowLpm, litersFromPulses(flowMeter.totalPulses), pump1On,
                                                pump2On, 0, 0, calibration.revision).c_str();
     pendingPayload.remove(pendingPayload.length() - 1);
-    pendingPayload += String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," + sensorTwoStatus + "]}";
-    pendingPayload += "}";
+    pendingPayload += diagnostics + "}";
     if (postPayload(pendingPayload)) {
       pendingPayload = "";
       retryDelayMs = kInitialRetryDelayMs;
@@ -577,6 +585,8 @@ void reportTemperature() {
                                              litersFromPulses(flowMeter.totalPulses), pump1On,
                                              pump2On, thermocoupleOneC, thermocoupleTwoC,
                                              calibration.revision).c_str();
+  pendingPayload.remove(pendingPayload.length() - 1);
+  pendingPayload += diagnostics + "}";
   if (postPayload(pendingPayload)) {
     Serial.printf("Telemetry posted: %.2f C, %.2f C, %s, %.2f L/min\n", thermocoupleOneC,
                   thermocoupleTwoC, levelAvailable ? (String(levelDistanceMm) + " mm").c_str() : "level unavailable",
