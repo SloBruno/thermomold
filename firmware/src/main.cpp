@@ -3,7 +3,7 @@
 #include <HTTPClient.h>
 #include <LittleFS.h>
 #include <Update.h>
-#include <MAX6675.h>
+#include "max6675_frame.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
@@ -75,8 +75,43 @@ struct DeviceConfig {
 
 DeviceConfig config;
 CalibrationCommand calibration;
-MAX6675 *thermocoupleOne = nullptr;
-MAX6675 *thermocoupleTwo = nullptr;
+struct Max6675Pins {
+  uint8_t sck;
+  uint8_t cs;
+  uint8_t so;
+};
+constexpr Max6675Pins kThermocoupleOnePins = {kThermocoupleOneSckPin, kThermocoupleOneCsPin,
+                                              kThermocoupleOneSoPin};
+constexpr Max6675Pins kThermocoupleTwoPins = {kThermocoupleTwoSckPin, kThermocoupleTwoCsPin,
+                                              kThermocoupleTwoSoPin};
+
+// Hand-written MAX6675 read at ~100 kHz. The robtillaart library's zero-delay software SPI
+// read MAX6675 #1 as ~110 C at room temperature (tools/max6675_diag variants A/B), while this
+// timing read both modules correctly (variants C/D): CS low, wait tCSS, then sample SO with
+// SCK low, each bit settling >= 5 us after the falling edge that presented it.
+uint16_t readMax6675Frame(const Max6675Pins &pins) {
+  uint16_t raw = 0;
+  digitalWrite(pins.sck, LOW);
+  digitalWrite(pins.cs, LOW);
+  delayMicroseconds(kMax6675CsSetupUs);
+  for (int bit = 15; bit >= 0; --bit) {
+    if (digitalRead(pins.so)) raw |= static_cast<uint16_t>(1u << bit);
+    digitalWrite(pins.sck, HIGH);
+    delayMicroseconds(kMax6675HalfClockUs);
+    digitalWrite(pins.sck, LOW);
+    delayMicroseconds(kMax6675HalfClockUs);
+  }
+  digitalWrite(pins.cs, HIGH);  // Raising CS starts the next conversion.
+  return raw;
+}
+
+void configureMax6675Pins(const Max6675Pins &pins) {
+  pinMode(pins.cs, OUTPUT);
+  digitalWrite(pins.cs, HIGH);
+  pinMode(pins.sck, OUTPUT);
+  digitalWrite(pins.sck, LOW);
+  pinMode(pins.so, INPUT);
+}
 WiFiManager wifiManager;
 String pendingPayload;
 unsigned long nextReportAt = 0;
@@ -291,12 +326,8 @@ void provisionWiFiAndSettings() {
 }
 
 void configureSensor() {
-  thermocoupleOne = new MAX6675(kThermocoupleOneCsPin, kThermocoupleOneSoPin,
-                                kThermocoupleOneSckPin);
-  thermocoupleTwo = new MAX6675(kThermocoupleTwoCsPin, kThermocoupleTwoSoPin,
-                                kThermocoupleTwoSckPin);
-  thermocoupleOne->begin();
-  thermocoupleTwo->begin();
+  configureMax6675Pins(kThermocoupleOnePins);
+  configureMax6675Pins(kThermocoupleTwoPins);
   pinMode(kLevelTriggerPin, OUTPUT);
   digitalWrite(kLevelTriggerPin, LOW);
   pinMode(kLevelEchoPin, INPUT);
@@ -508,11 +539,13 @@ void updateLevel(unsigned long now) {
 }
 
 void reportTemperature() {
-  const uint8_t sensorOneStatus = thermocoupleOne->read();
-  const uint8_t sensorTwoStatus = thermocoupleTwo->read();
+  const Max6675Reading sensorOne = decodeMax6675Frame(readMax6675Frame(kThermocoupleOnePins));
+  const Max6675Reading sensorTwo = decodeMax6675Frame(readMax6675Frame(kThermocoupleTwoPins));
+  const uint8_t sensorOneStatus = sensorOne.status;
+  const uint8_t sensorTwoStatus = sensorTwo.status;
   if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
     Serial.printf("MAX6675 sensor error (status %u, %u); publishing unavailable readings.\n",
-                  thermocoupleOne->getStatus(), thermocoupleTwo->getStatus());
+                  sensorOneStatus, sensorTwoStatus);
     pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
                                                flowLpm, litersFromPulses(flowMeter.totalPulses), pump1On,
                                                pump2On, 0, 0, calibration.revision).c_str();
@@ -527,8 +560,8 @@ void reportTemperature() {
     }
     return;
   }
-  const float thermocoupleOneC = thermocoupleOne->getCelsius();
-  const float thermocoupleTwoC = thermocoupleTwo->getCelsius();
+  const float thermocoupleOneC = sensorOne.celsius;
+  const float thermocoupleTwoC = sensorTwo.celsius;
   if (!isValidTemperatureReading(thermocoupleOneC) || !isValidTemperatureReading(thermocoupleTwoC)) {
     Serial.println("MAX6675 produced an invalid temperature; measurement discarded.");
     return;

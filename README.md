@@ -203,7 +203,7 @@ Tecnologias principais:
 - `LittleFS` para a configuração local não-Wi-Fi.
 - `HTTPClient` e `WiFiClientSecure` para envio de telemetria HTTPS.
 - `ArduinoJson` para configuração e resposta de comandos.
-- `MAX6675` para os termopares.
+- Leitura própria dos MAX6675 por software SPI a ~100 kHz ([`firmware/include/max6675_frame.h`](firmware/include/max6675_frame.h)); veja [Leitura dos termopares](#leitura-dos-termopares-desde-017).
 - Interrupção em D34 para contar os pulsos do ZJ-S201.
 
 ### Fail-safe das bombas
@@ -272,18 +272,53 @@ Quando a leitura de algum MAX6675 falha, a telemetria não é descartada. O ESP3
 "diagnostics": { "max6675Status": [0, 129] }
 ```
 
-A ordem é `[MAX6675 #1, MAX6675 #2]`. Os códigos vêm da biblioteca `robtillaart/MAX6675`:
+A ordem é `[MAX6675 #1, MAX6675 #2]`. Os códigos seguem os da biblioteca `robtillaart/MAX6675`, para manter o contrato com o painel:
 
 | Status | Hex | Significado | Causa provável |
 |---|---|---|---|
 | 0 | `0x00` | OK | — |
 | 4 | `0x04` | Termopar aberto | termopar desconectado ou com o fio rompido |
 | 128 | `0x80` | Sem leitura | nenhuma leitura feita ainda |
-| 129 | `0x81` | Sem comunicação | o ESP32 leu `0xFFFF` no SO: fio SO, SCK ou CS solto ou trocado, ou módulo sem alimentação |
+| 129 | `0x81` | Sem comunicação | o ESP32 leu `0xFFFF` no SO, ou um quadro com os bits D15 ou D1 em 1 (sempre 0 num quadro bom): fio SO, SCK ou CS solto ou trocado, ou módulo sem alimentação |
 
 Sem falha, o campo `diagnostics` não aparece na telemetria.
 
 Não calibre um termopar enquanto ele mostrar status diferente de 0 ou leituras instáveis. A calibração só corrige um erro linear e estável; ela não corrige mau contato nem módulo com defeito.
+
+### Leitura dos termopares (desde 0.1.7)
+
+Até a 0.1.6 o firmware usava a biblioteca `robtillaart/MAX6675` em software SPI. Com a configuração padrão, ela gera o clock sem nenhuma pausa entre os pulsos. Nessa montagem o MAX6675 #1 lia ~110 °C em temperatura ambiente, enquanto o #2 lia certo.
+
+O diagnóstico isolado em [`tools/max6675_diag`](tools/max6675_diag) lê os dois módulos de quatro jeitos, ~45 s cada, sem Wi-Fi e com os relés desligados. Resultado com os dois termopares no ambiente:
+
+| Variante | Leitura | MAX6675 #1 (média) | MAX6675 #2 (média) |
+|---|---|---|---|
+| A | biblioteca, sem pausa (como na produção até 0.1.6) | 108,2 °C | 24,3 °C |
+| B | biblioteca com `setSWSPIdelay(20)` | 108,4 °C | 24,2 °C |
+| C | leitura própria a ~100 kHz, sensores em sequência | 24,0 °C | 24,2 °C |
+| D | leitura própria, um sensor por vez | 23,9 °C | 24,2 °C |
+
+Nenhuma variante teve quadro inválido. Ou seja, o erro não é de comunicação nem do termopar: a biblioteca amostra o SO logo depois de baixar o SCK, e o bit ainda não estava estável no canal #1.
+
+A partir da 0.1.7 o firmware lê os MAX6675 com a mesma temporização da variante C:
+
+- CS em nível baixo e espera de 2 µs (`tCSS`);
+- clock de ~100 kHz (5 µs alto, 5 µs baixo), bem abaixo do máximo de 4,3 MHz;
+- cada bit é lido com o SCK baixo, pelo menos 5 µs depois da borda que o colocou no SO;
+- subir o CS inicia a próxima conversão (~220 ms).
+
+A decodificação do quadro fica em [`firmware/include/max6675_frame.h`](firmware/include/max6675_frame.h) e tem testes nativos. Um quadro `0xFFFF`, ou com D15 ou D1 em 1, é tratado como sem comunicação (status 129).
+
+Para repetir o diagnóstico:
+
+```bash
+cd tools/max6675_diag
+pio run -e esp32dev -t upload          # grava o diagnóstico (não apaga o Wi-Fi salvo nem o LittleFS)
+python3 capture.py captura.txt 215 "# DONE"
+cd ../../firmware && pio run -e esp32dev -t upload   # volta para a produção
+```
+
+Alimente o ESP32 só pelo USB durante o diagnóstico, nunca pelo USB e pela fonte ao mesmo tempo.
 
 ### Compilar, testar e gravar
 
