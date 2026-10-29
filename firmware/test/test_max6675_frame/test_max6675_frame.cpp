@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <initializer_list>
 
 #include "max6675_frame.h"
 
@@ -33,6 +34,11 @@ void test_floating_so_line_is_no_communication() {
 }
 
 void test_all_zero_frame_is_no_communication_not_zero_celsius() {
+  for (const auto raw : {0x0000u, 0x0001u, 0x0004u, 0xFFFFu, 0x8308u, 0x030Au}) {
+    const auto reading = decodeMax6675Frame(static_cast<uint16_t>(raw));
+    TEST_ASSERT_NOT_EQUAL(kMax6675StatusOk, reading.status);
+    TEST_ASSERT_TRUE(std::isnan(reading.celsius));
+  }
   TEST_ASSERT_EQUAL_UINT8(kMax6675StatusNoCommunication, decodeMax6675Frame(0x0000).status);
 }
 

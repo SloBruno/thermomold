@@ -38,6 +38,9 @@ test('public calibration API revisions and authenticated telemetry command deliv
   t.after(async () => { child.kill('SIGTERM'); await once(child, 'exit'); await unlink(file).catch(() => {}) })
   const base = `http://127.0.0.1:${portNumber}`
 
+  const health = await fetch(`${base}/health`)
+  assert.equal((await health.json()).telemetryContractVersion, 2)
+
   const initial = await fetch(`${base}/api/calibration`)
   assert.equal(initial.status, 200)
   assert.equal((await initial.json()).revision, 0)

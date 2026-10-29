@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import type { TelemetryStatus } from '../../../shared/types'
 
 type SensorId = 'max6675-1' | 'max6675-2'
 type Point = { rawC: number; referenceC: number }
 type SensorCalibration = { low: Point; high: Point }
 type Calibration = { revision: number; sensors: Record<SensorId, SensorCalibration> }
-type Thermocouple = { rawTemperatureC?: number; temperatureC: number }
-type Telemetry = { sample?: { sensors?: { thermocouples?: Thermocouple[] } } }
+
 type Stage = 'cold' | 'hot'
 const ids: SensorId[] = ['max6675-1', 'max6675-2']
 const apiBaseUrl = import.meta.env.VITE_SOCKET_URL || ''
@@ -24,9 +24,9 @@ export default function CalibrationPage() {
         const [c, t] = await Promise.all([fetch(`${apiBaseUrl}/api/calibration`), fetch(`${apiBaseUrl}/api/telemetry`)])
         if (!c.ok || !t.ok) throw new Error()
         const next = await c.json() as Calibration
-        const telemetry = await t.json() as Telemetry
+        const telemetry = await t.json() as TelemetryStatus
         const values: Partial<Record<SensorId, number>> = {}
-        telemetry.sample?.sensors?.thermocouples?.forEach((sensor, index) => { const value = sensor.rawTemperatureC ?? sensor.temperatureC; if (Number.isFinite(value) && ids[index]) values[ids[index]] = value })
+        telemetry.sample?.sensors?.thermocouples?.forEach((sensor, index) => { const value = sensor.rawTemperatureC === undefined ? sensor.temperatureC : sensor.rawTemperatureC; if (typeof value === 'number' && Number.isFinite(value) && ids[index]) values[ids[index]] = value })
         if (!active) return
         setReadings(values)
         setCalibration(current => current.revision === 0 && !captured.cold && !captured.hot ? next : current)

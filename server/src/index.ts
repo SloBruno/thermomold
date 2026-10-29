@@ -462,7 +462,7 @@ io.on('connection', (socket) => {
 });
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', state });
+  res.json({ status: 'ok', telemetryContractVersion: 2, state });
 });
 
 app.get('/api/telemetry', (_req, res) => {

@@ -61,3 +61,34 @@ export interface DashboardData {
   timestamp: string;
   machines: MachineData[];
 }
+
+// Explicit null means this acquisition is unavailable, never a numeric sentinel
+// or a cached previous value. Legacy top-level temperature always mirrors #1.
+export type TemperatureC = number | null;
+export interface ThermocoupleReading {
+  id: 'max6675-1' | 'max6675-2';
+  rawTemperatureC?: TemperatureC;
+  temperatureC: TemperatureC;
+}
+export interface LevelReading { sensor: 'AJ-SR04M'; distanceMm: number }
+export interface FlowReading { sensor: 'ZJ-S201'; litersPerMinute: number; totalLiters: number }
+export interface MultiSensorReadings {
+  thermocouples: [ThermocoupleReading, ThermocoupleReading];
+  level?: LevelReading;
+  flow?: FlowReading;
+}
+export interface TelemetrySample {
+  deviceId: string;
+  temperatureC: TemperatureC;
+  rawTemperatureC?: TemperatureC;
+  calibrationRevision?: number;
+  observedAt: string;
+  sensor: 'MAX6675';
+  sensors?: MultiSensorReadings;
+  pumps?: { pump1: boolean; pump2: boolean };
+  diagnostics?: { max6675Status: [number, number]; max6675Raw?: [number, number]; levelRawMm?: number[] };
+  receivedAt: string;
+}
+export type TelemetryStatus =
+  | { connected: false; status: 'offline'; stale: true; sample: null }
+  | { connected: true; status: 'online' | 'stale'; stale: boolean; sample: TelemetrySample };
