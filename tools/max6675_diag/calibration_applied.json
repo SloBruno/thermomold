@@ -1,0 +1,40 @@
+{
+  "referenceC": [
+    0,
+    24.4
+  ],
+  "sensors": {
+    "max6675-1": {
+      "low": {
+        "rawC": 0.0,
+        "referenceC": 0
+      },
+      "high": {
+        "rawC": 10.3625,
+        "referenceC": 24.4
+      }
+    },
+    "max6675-2": {
+      "low": {
+        "rawC": 17.26271186440678,
+        "referenceC": 0
+      },
+      "high": {
+        "rawC": 40.29375,
+        "referenceC": 24.4
+      }
+    }
+  },
+  "fits": {
+    "rawC1": {
+      "slope": 2.3546441495778043,
+      "offset": -0.0
+    },
+    "rawC2": {
+      "slope": 1.0594398679011832,
+      "offset": -18.288805177243304
+    }
+  },
+  "revision": 1,
+  "verifiedAfterReset": true
+}

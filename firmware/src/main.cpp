@@ -663,6 +663,16 @@ void loop() {
     const char c = Serial.read();
     if (c == 'd') serialDiagnostics = true;
     if (c == 'q') serialDiagnostics = false;
+    // Local USB calibration uses the same validated command path as the backend.
+    // Allowed only in local mode: relays stay OFF, no network command can race it.
+    if (c == 'c' && localDiagnosticsOnly) {
+      const uint32_t before = calibration.revision;
+      Serial.setTimeout(1500);
+      const String body = Serial.readStringUntil('\n');
+      applyCalibrationCommand(body);
+      Serial.printf("LOCAL_CALIBRATION previous=%lu revision=%lu changed=%u\n",
+        (unsigned long)before, (unsigned long)calibration.revision, before != calibration.revision);
+    }
     if (c == 'h' && localDiagnosticsOnly) {
       diagnosticHardwareSpi = !diagnosticHardwareSpi;
       if (diagnosticHardwareSpi) {
