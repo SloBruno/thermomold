@@ -136,6 +136,7 @@ FlowPulseFilter flowFilter;
 portMUX_TYPE flowMux = portMUX_INITIALIZER_UNLOCKED;
 FlowMeter flowMeter;
 uint32_t flowWindowStartedAt = 0;
+String flowCounterEpoch;
 float flowLpm = 0.0f;
 SPIClass diagnosticSpiOne(HSPI);
 SPIClass diagnosticSpiTwo(VSPI);
@@ -379,6 +380,7 @@ void configureSensor() {
   pinMode(kFlowSensorPin, INPUT);  // GPIO34 is input-only; divider provides the level.
   attachInterrupt(digitalPinToInterrupt(kFlowSensorPin), onFlowPulse, FALLING);
   flowWindowStartedAt = millis();
+  flowCounterEpoch = String(esp_random(), HEX) + "-" + String(esp_random(), HEX);
   delay(250);  // MAX6675 conversion time after startup.
 }
 
@@ -584,6 +586,14 @@ void updateLevel(unsigned long now) {
   }
 }
 
+void addRawFlowCountersToPayload() {
+  portENTER_CRITICAL(&flowMux);
+  const uint64_t rawPulses = flowFilter.rawTotalPulses;
+  portEXIT_CRITICAL(&flowMux);
+  pendingPayload = withRawFlowCounters(std::string(pendingPayload.c_str()), rawPulses,
+    std::string(flowCounterEpoch.c_str()), kFlowPulsesPerSecondPerLpm * 60.0).c_str();
+}
+
 void reportTemperature() {
   const uint16_t rawOne = readMax6675Frame(kThermocoupleOnePins);
   const uint16_t rawTwo = readMax6675Frame(kThermocoupleTwoPins);
@@ -605,6 +615,7 @@ void reportTemperature() {
                                                pump2On, 0, 0, calibration.revision).c_str();
     pendingPayload.remove(pendingPayload.length() - 1);
     pendingPayload += diagnostics + "}";
+    addRawFlowCountersToPayload();
     if (postPayload(pendingPayload)) {
       pendingPayload = "";
       retryDelayMs = kInitialRetryDelayMs;
@@ -632,6 +643,7 @@ void reportTemperature() {
                                              calibration.revision).c_str();
   pendingPayload.remove(pendingPayload.length() - 1);
   pendingPayload += diagnostics + "}";
+  addRawFlowCountersToPayload();
   if (postPayload(pendingPayload)) {
     Serial.printf("Telemetry posted: %.2f C, %.2f C, %s, %.2f L/min\n", thermocoupleOneC,
                   thermocoupleTwoC, levelAvailable ? (String(levelDistanceMm) + " mm").c_str() : "level unavailable",

@@ -46,6 +46,18 @@ inline std::string buildTelemetryPayload(const std::string &deviceId,
          ",\"sensor\":\"MAX6675\"}";
 }
 
+// This helper only augments the flow object produced by our payload builders.
+inline std::string withRawFlowCounters(std::string payload, uint64_t pulses,
+                                      const std::string &epoch, double pulsesPerLiter) {
+  const std::string marker = "\"flow\":{";
+  const size_t start = payload.find(marker);
+  if (start == std::string::npos) return payload;
+  payload.insert(start + marker.size(), "\"rawTotalPulses\":" + std::to_string(pulses) +
+    ",\"counterEpoch\":\"" + escapeJsonString(epoch) + "\",\"pulsesPerLiter\":" +
+    formatTemperatureC(pulsesPerLiter) + ",");
+  return payload;
+}
+
 inline unsigned long minimumTelemetryIntervalMs() {
   // Each sample creates a fresh TLS connection. Keep this rate low enough for
   // ESP32 heap/socket cleanup and free-tier HTTPS backends to remain stable.

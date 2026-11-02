@@ -29,7 +29,7 @@ Dentro de `sensors.flow`, junto de `sensor: "ZJ-S201"`, `litersPerMinute` e `tot
 - `pulsesPerLiter`: número finito positivo, coeficiente nominal/ativo usado para converter **esse contador bruto** em volume. Deve ser consistente durante a coleta.
 - Campos existentes `deviceId`, `observedAt` (timestamp correto, estritamente crescente), e `pumps: { pump1, pump2 }` continuam necessários.
 
-O backend preserva esses campos em GET/Socket.IO da telemetria, mas este commit **não modifica o firmware**. `RAW_FLOW` somente por USB não habilita a proposta remota.
+O backend preserva esses campos em GET/Socket.IO. O firmware **0.1.13** publica os três campos: o contador cumulativo inclui todas as bordas da ISR (inclusive as rejeitadas pelo filtro), é lido dentro da seção crítica e usa um identificador aleatório por boot. Antes de iniciar, aguarde uma amostra com esse contrato. `RAW_FLOW` somente por USB não habilita a proposta remota.
 
 Para aplicar futuramente: adicionar comando de calibração de vazão com revisão, confirmação explícita e limites; persistência NVS no ESP; publicar revisão/cofeficiente aplicado como confirmação. Nunca declarar aplicação só pelo envio do comando.
 

@@ -21,6 +21,7 @@ constexpr uint32_t kFlowMaxPulseGapUs = 250000;
 // State touched by the ISR. In firmware it is only accessed inside a critical section.
 struct FlowPulseFilter {
   uint32_t rawEdges = 0;
+  uint64_t rawTotalPulses = 0;
   bool hasEdge = false;
   uint32_t lastEdgeUs = 0;   // last FALLING edge seen, accepted or not
   uint32_t accepted = 0;     // accepted pulses in the current window
@@ -35,6 +36,7 @@ struct FlowPulseFilter {
 // always_inline: called from an IRAM ISR, so it must not end up as a flash-resident call.
 inline __attribute__((always_inline)) bool flowPulseEdge(FlowPulseFilter &filter, uint32_t nowUs) {
   ++filter.rawEdges;
+  ++filter.rawTotalPulses;
   const bool quietLongEnough =
       !filter.hasEdge || static_cast<uint32_t>(nowUs - filter.lastEdgeUs) >= kFlowMinPulseIntervalUs;
   filter.hasEdge = true;
