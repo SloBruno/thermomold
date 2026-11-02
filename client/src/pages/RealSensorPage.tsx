@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import socket from '../lib/socket'
 import FlowCalibrationPanel from '../components/FlowCalibrationPanel'
+import { tankLevelPercent } from '../lib/tank-level'
 
 import type { TelemetryStatus, TemperatureC } from '../../../shared/types'
 
@@ -12,6 +13,7 @@ type ChartPoint = {
   temperature1: TemperatureC
   temperature2?: TemperatureC
   levelMm?: number
+  levelPercent?: number
   flowLpm?: number
 }
 
@@ -74,6 +76,7 @@ export default function RealSensorPage() {
         temperature1: temperatures ? temperatures[0].temperatureC : sample.temperatureC,
         temperature2: temperatures?.[1]?.temperatureC,
         levelMm: sample.sensors?.level?.distanceMm,
+        levelPercent: tankLevelPercent(sample.sensors?.level?.distanceMm),
         flowLpm: sample.sensors?.flow?.litersPerMinute,
       }
       return [...previous, point].slice(-1200)
@@ -81,6 +84,7 @@ export default function RealSensorPage() {
   }, [telemetry?.sample?.observedAt])
 
   const sample = telemetry?.sample
+  const levelPercent = tankLevelPercent(sample?.sensors?.level?.distanceMm)
   const max6675Warnings = (sample?.diagnostics?.max6675Status ?? [])
     .map((status, index) => ({ status, index }))
     .filter(({ status }) => status !== 0)
@@ -149,8 +153,11 @@ export default function RealSensorPage() {
               <div>
                 <p className="text-sm font-medium text-neutral-500">Nível (AJ-SR04M)</p>
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
-                  {sample.sensors?.level?.distanceMm ?? '—'} mm
+                  {levelPercent === undefined ? 'Indisponível' : `${levelPercent.toFixed(0)}%`}
                 </p>
+                <p className="text-xs text-neutral-500">{sample.sensors?.level?.distanceMm ?? '—'} mm · 263 mm = 0% · 267 mm = 100%</p>
+                {levelPercent !== undefined && <progress aria-label="Nível do tanque" value={levelPercent} max={100} className="mt-2 h-3 w-full accent-violet-600" />}
+                <p className="text-xs text-amber-700">Faixa de 4 mm: 1 mm equivale a 25 pontos percentuais.</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Vazão (ZJ-S201)</p>
@@ -158,7 +165,7 @@ export default function RealSensorPage() {
                   {sample.sensors?.flow ? `${sample.sensors.flow.litersPerMinute.toFixed(2)} L/min` : '—'}
                 </p>
                 {sample.sensors?.flow && (
-                  <p className="text-xs text-neutral-500">Total: {sample.sensors.flow.totalLiters.toFixed(2)} L</p>
+                  <p className="text-xs text-neutral-500">Total: {sample.sensors.flow.totalLiters.toFixed(2)} L{sample.sensors.flow.pulsesPerLiter ? ` · ${sample.sensors.flow.pulsesPerLiter.toFixed(2)} pulsos/L` : ''}</p>
                 )}
               </div>
               <div>
@@ -192,7 +199,7 @@ export default function RealSensorPage() {
                   <div className="h-64 rounded-lg border border-neutral-200 p-3">
                     <p className="mb-2 text-sm font-bold text-neutral-700">Nível e vazão</p>
                     <ResponsiveContainer width="100%" height="90%">
-                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis yAxisId="level" unit=" mm" /><YAxis yAxisId="flow" orientation="right" unit=" L/m" /><Tooltip /><Legend /><Line yAxisId="level" type="monotone" dataKey="levelMm" name="Nível" stroke="#7c3aed" dot={false} connectNulls /><Line yAxisId="flow" type="monotone" dataKey="flowLpm" name="Vazão" stroke="#059669" dot={false} connectNulls /></LineChart>
+                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis yAxisId="level" unit="%" domain={[0,100]} /><YAxis yAxisId="flow" orientation="right" unit=" L/m" /><Tooltip /><Legend /><Line yAxisId="level" type="monotone" dataKey="levelPercent" name="Nível (%)" stroke="#7c3aed" dot={false} connectNulls /><Line yAxisId="flow" type="monotone" dataKey="flowLpm" name="Vazão" stroke="#059669" dot={false} connectNulls /></LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>

@@ -1,12 +1,36 @@
 # Calibração de vazão por volume conhecido
 
+## Ajuste aprovado pelo operador — firmware 0.1.14
+
+Os três ensaios de 500 mL tiveram 27988, 24496 e 24422 bordas cruas.
+O operador aprovou a média dos TRÊS coeficientes: **51270,6666667 pulsos/L**.
+O firmware 0.1.14 usa esse divisor tanto para `litersPerMinute` (bordas cruas na
+janela / tempo real) quanto para `totalLiters` (bordas cruas cumulativas desde o
+boot). O coeficiente fica versionado em `firmware/include/flow_calibration.h`,
+persiste por reinício por estar na flash e é publicado como `pulsesPerLiter`.
+Não aplicar o fator de pulsos brutos ao contador filtrado. O filtro antigo
+continua disponível para diagnóstico, mas não alimenta os valores calibrados.
+Pulsos elétricos falsos não são distinguíveis de fluxo real por essa conversão;
+a calibração é empírica e precisa ser verificada com novo volume conhecido.
+Novas sessões propõem coeficientes, mas não os aplicam automaticamente.
+O total reinicia em cada boot (identificado por `counterEpoch`).
+
+## Nível no dashboard
+
+Pontos solicitados, sem inverter: **263 mm = 0%**, **267 mm = 100%**.
+`nivelPercentual = clamp((distanciaMm-263)*25,0,100)`.
+O cartão preserva mm, exibe porcentagem/barra e o gráfico usa percentual.
+Sem leitura, mostra indisponível, nunca 0%. Uma variação de 1 mm representa
+25 pontos percentuais: o intervalo de 4 mm tem resolução prática muito baixa.
+
+
 Painel na página **Sensor Real**, referência padrão **500 mL**, editável antes de iniciar. Iniciar solicita ambas ON; Parar solicita ambas OFF imediatamente no estado desejado do backend e espera uma nova telemetria com `pumps` OFF para finalizar. Nenhuma requisição é enviada diretamente ao ESP. O próximo POST do ESP recebe `commands.pumps`.
 
 ## Resultado e limites
 
 - Tempo exibido = intervalo entre comandos no servidor, **não** tempo de contatos físicos ligados.
 - O painel coleta número de amostras, último L/min, volume de referência, volume medido, diferença, pulsos (quando disponíveis), janela de telemetria e proposta de correção.
-- Firmware atual: `sensors.flow.totalLiters` deriva de pulsos **aceitos pelo filtro**, nominalmente `/450`; o filtro mínimo e a confirmação por janelas podem descartar pulsos. Sua diferença é exibida apenas como **volume filtrado informativo**, sem fator proposto e sem reconstruir pulsos a partir de L/min.
+- Até o firmware 0.1.13: `sensors.flow.totalLiters` deriva de pulsos **aceitos pelo filtro**, nominalmente `/450`; o filtro mínimo e a confirmação por janelas podem descartar pulsos. Sua diferença é exibida apenas como **volume filtrado informativo**, sem fator proposto e sem reconstruir pulsos a partir de L/min.
 - Com contrato bruto válido, `pulses = final.rawTotalPulses - inicial.rawTotalPulses`; `measuredMl = pulses / pulsesPerLiter * 1000`; `proposedFactor = referenceMl / measuredMl`; `proposedPulsesPerLiter = pulses / (referenceMl / 1000)`. O multiplicador vale para volume/vazão; o novo coeficiente em pulsos/L é o divisor correspondente, não o multiplicador.
 - Baseline = última amostra recente antes do comando ON. Final = primeira nova amostra posterior ao comando OFF com ambas as bombas reportadas OFF. Janela e atraso ficam visíveis; podem incluir pulsos anteriores ao ON e fluxo residual posterior ao OFF. Para metrologia exata, o firmware precisa capturar contadores junto da aplicação dos comandos e devolver identificador da coleta, limites e timestamps.
 - ON/OFF reportados são estados lógicos; não representam confirmação de contatos nem intertravamento físico. O operador deve confirmar recipiente/circuito seguro e volume real antes de usar a proposta.

@@ -49,6 +49,7 @@ int kThermocoupleOnePins=0, kThermocoupleTwoPins=1;
 uint16_t frames[2]; unsigned reads[2]={0,0}; bool postOk=true;
 uint16_t readMax6675Frame(int pin) { ++reads[pin]; return frames[pin]; }
 double litersFromPulses(unsigned pulses) { return pulses/450.0; }
+double calibratedFlowTotalLiters(){return 1.0;}
 void scheduleRetry() {}
 bool postPayload(const String& s) { std::cout << s << '\n'; return postOk; }
 '''

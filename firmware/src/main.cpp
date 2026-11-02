@@ -17,6 +17,7 @@
 #include "actuators.h"
 #include "calibration.h"
 #include "flow_filter.h"
+#include "flow_calibration.h"
 #include "level_filter.h"
 #include "ota_update.h"
 #include "sensor_readings.h"
@@ -233,10 +234,10 @@ void updateFlow() {
   const FlowWindow window = takeFlowWindow(flowFilter, windowMs);
   portEXIT_CRITICAL(&flowMux);
   flowMeterUpdate(flowMeter, window);
-  flowLpm = flowMeter.lpm;
+  flowLpm = rawFlowLpm(window.rawEdges, windowMs);
   if (serialDiagnostics) Serial.printf("RAW_FLOW ms=%lu windowMs=%lu edges=%lu accepted=%lu rejected=%lu rawHz=%.2f filteredLpm=%.2f totalPulses=%lu\n",
     now, windowMs, window.rawEdges, window.pulses, window.rawEdges-window.pulses,
-    window.rawEdges*1000.0/windowMs, flowLpm, flowMeter.totalPulses);
+    window.rawEdges*1000.0/windowMs, flowMeter.lpm, flowMeter.totalPulses);
   flowWindowStartedAt = now;
 }
 
@@ -586,12 +587,19 @@ void updateLevel(unsigned long now) {
   }
 }
 
+double calibratedFlowTotalLiters() {
+  portENTER_CRITICAL(&flowMux);
+  const uint64_t pulses = flowFilter.rawTotalPulses;
+  portEXIT_CRITICAL(&flowMux);
+  return rawFlowLiters(pulses);
+}
+
 void addRawFlowCountersToPayload() {
   portENTER_CRITICAL(&flowMux);
   const uint64_t rawPulses = flowFilter.rawTotalPulses;
   portEXIT_CRITICAL(&flowMux);
   pendingPayload = withRawFlowCounters(std::string(pendingPayload.c_str()), rawPulses,
-    std::string(flowCounterEpoch.c_str()), kFlowPulsesPerSecondPerLpm * 60.0).c_str();
+    std::string(flowCounterEpoch.c_str()), kCalibratedFlowPulsesPerLiter).c_str();
 }
 
 void reportTemperature() {
@@ -624,7 +632,7 @@ void reportTemperature() {
                                              applyTemperatureCalibration(thermocoupleOneC, calibration.sensorOne),
                                              applyTemperatureCalibration(thermocoupleTwoC, calibration.sensorTwo),
                                              levelAvailable ? levelDistanceMm : 0, flowLpm,
-                                             litersFromPulses(flowMeter.totalPulses), pump1On,
+                                             calibratedFlowTotalLiters(), pump1On,
                                              pump2On, thermocoupleOneC, thermocoupleTwoC,
                                              calibration.revision).c_str();
   pendingPayload.remove(pendingPayload.length() - 1);

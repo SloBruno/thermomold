@@ -114,7 +114,7 @@ export default function FlowCalibrationPanel() {
       {state.baselineObservedAt && <p className="text-xs">Janela de telemetria: {state.baselineObservedAt} → {state.finalObservedAt ?? 'aguardando'}</p>}
     </div>}
     {state?.source === 'filtered-total' && <p className="text-sm text-amber-800">Sem contador bruto remoto: volume é somente a diferença do total filtrado; pode omitir pulsos. Fator de calibração indisponível até integração do firmware.</p>}
-    <p className="text-xs text-neutral-500">Nenhum fator é aplicado. Aplicação persistente depende de integração do firmware e confirmação futura do operador. Volume usa contadores entre amostras, nunca integração de L/min. A janela pode incluir atraso da telemetria e fluxo residual.</p>
+    <p className="text-xs text-neutral-500">Este ensaio não altera automaticamente o coeficiente ativo mostrado no cartão de vazão. Novas propostas exigem confirmação e atualização do firmware. Volume usa contadores entre amostras, nunca integração de L/min. A janela pode incluir atraso da telemetria e fluxo residual.</p>
     <p className="text-xs text-amber-800">ON/OFF são comandos lógicos, não confirmação dos contatos. Falha de rede cancela a coleta e tenta OFF; o servidor expira a coleta sem renovação em 5 s (máximo 120 s). Não substitui parada física nem intertravamento. Aguarde a leitura final antes de repetir.</p>
   </section>
 }

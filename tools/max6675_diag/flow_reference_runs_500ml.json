@@ -1,0 +1,14 @@
+{
+  "source": "operator screenshots; each reference volume 500 mL",
+  "applied": false,
+  "runs": [
+    {"referenceMl":500,"elapsedCommandSeconds":18.0,"rawPulses":27988,"proposedPulsesPerLiter":55976},
+    {"referenceMl":500,"elapsedCommandSeconds":17.5,"rawPulses":24496,"proposedPulsesPerLiter":48992},
+    {"referenceMl":500,"elapsedCommandSeconds":15.7,"rawPulses":24422,"proposedPulsesPerLiter":48844}
+  ],
+  "meanAllPulsesPerLiter":51270.666666666664,
+  "meanLastTwoPulsesPerLiter":48918,
+  "lastTwoRelativeDifferencePercent":0.30254711966965125,
+  "firstAboveLastTwoMeanPercent":14.428226828570256,
+  "note":"No coefficient applied. Raw cumulative counts are distinct from filtered meter pulses. Do not apply raw-count coefficient directly to filtered flow. First run differs; verify stationary raw count with no physical flow before accepting a fit."
+}
