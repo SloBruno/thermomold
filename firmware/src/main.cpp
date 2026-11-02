@@ -142,6 +142,7 @@ SPIClass diagnosticSpiTwo(VSPI);
 bool diagnosticHardwareSpi = false;
 bool serialDiagnostics = false;
 bool localDiagnosticsOnly = false;
+bool forceConfigPortal = false;
 uint32_t lastTemperatureReadMs = 0;
 
 uint16_t readHardwareDiagnostic(SPIClass &spi, const Max6675Pins &pins) {
@@ -348,8 +349,15 @@ void provisionWiFiAndSettings() {
   wifiManager.addParameter(&deviceKeyField);
   wifiManager.addParameter(&intervalField);
   wifiManager.setConfigPortalTimeout(180);
+  wifiManager.setDebugOutput(false);
+  wifiManager.setAPCallback([](WiFiManager *) {
+    Serial.printf("AP_STARTED name=ThermoMold-Setup address=%s\n", WiFi.softAPIP().toString().c_str());
+  });
 
-  if (!wifiManager.autoConnect("ThermoMold-Setup")) {
+  if (forceConfigPortal) Serial.println("AP_READY_REQUEST name=ThermoMold-Setup address=192.168.4.1");
+  const bool connected = forceConfigPortal ? wifiManager.startConfigPortal("ThermoMold-Setup")
+                                           : wifiManager.autoConnect("ThermoMold-Setup");
+  if (!connected) {
     Serial.println("Wi-Fi provisioning timed out; rebooting.");
     ESP.restart();
   }
@@ -646,7 +654,11 @@ void setup() {
   Serial.printf("ThermoMold firmware=%s. Send d within 2 s for LOCAL diagnostics (no network, relays OFF).\n", THERMOMOLD_FIRMWARE_VERSION);
   const uint32_t start = millis();
   while (millis()-start < 2000) {
-    if (Serial.available() && Serial.read() == 'd') { localDiagnosticsOnly = serialDiagnostics = true; break; }
+    if (Serial.available()) {
+      const char command = Serial.read();
+      if (command == 'd') { localDiagnosticsOnly = serialDiagnostics = true; break; }
+      if (command == 'p') { forceConfigPortal = true; break; }
+    }
     delay(5);
   }
   if (!localDiagnosticsOnly) {
