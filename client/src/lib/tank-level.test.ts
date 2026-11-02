@@ -2,8 +2,8 @@ import { expect, test } from 'vitest'
 import { tankLevelPercent } from './tank-level'
 test('operator endpoints and midpoint are preserved exactly',()=>{
  expect(tankLevelPercent(333)).toBe(0)
- expect(tankLevelPercent((333+280)/2)).toBe(50)
- expect(tankLevelPercent(280)).toBe(100)
+ expect(tankLevelPercent((333+293)/2)).toBe(50)
+ expect(tankLevelPercent(293)).toBe(100)
 })
 test('clamps without inventing a reading when unavailable',()=>{
  expect(tankLevelPercent(400)).toBe(0)

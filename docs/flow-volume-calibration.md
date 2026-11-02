@@ -17,11 +17,11 @@ O total reinicia em cada boot (identificado por `counterEpoch`).
 
 ## Nível no dashboard
 
-Pontos atualizados pelo operador: **333 mm = 0%**, **280 mm = 100%**.
-`nivelPercentual = clamp((333-distanciaMm)*100/(333-280),0,100)`.
+Pontos atualizados pelo operador: **333 mm = 0%**, **293 mm = 100%**.
+`nivelPercentual = clamp((333-distanciaMm)*100/(333-293),0,100)`.
 O cartão preserva mm, exibe porcentagem/barra e o gráfico usa percentual.
-Sem leitura, mostra indisponível, nunca 0%. O intervalo é de 53 mm; o ponto
-intermediário de 306,5 mm corresponde a 50%. Substitui os antigos 263/267 mm.
+Sem leitura, mostra indisponível, nunca 0%. O intervalo é de 40 mm; o ponto
+intermediário de 313 mm corresponde a 50%. Substitui os antigos 263/267 mm.
 
 
 Painel na página **Sensor Real**, referência padrão **500 mL**, editável antes de iniciar. Iniciar solicita ambas ON; Parar solicita ambas OFF imediatamente no estado desejado do backend e espera uma nova telemetria com `pumps` OFF para finalizar. Nenhuma requisição é enviada diretamente ao ESP. O próximo POST do ESP recebe `commands.pumps`.
