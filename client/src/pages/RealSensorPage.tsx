@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import socket from '../lib/socket'
 import FlowCalibrationPanel from '../components/FlowCalibrationPanel'
-import { tankLevelPercent } from '../lib/tank-level'
+import { tankLevelPercent, TANK_EMPTY_MM, TANK_FULL_MM } from '../lib/tank-level'
 
 import type { TelemetryStatus, TemperatureC } from '../../../shared/types'
 
@@ -155,9 +155,8 @@ export default function RealSensorPage() {
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
                   {levelPercent === undefined ? 'Indisponível' : `${levelPercent.toFixed(0)}%`}
                 </p>
-                <p className="text-xs text-neutral-500">{sample.sensors?.level?.distanceMm ?? '—'} mm · 263 mm = 0% · 267 mm = 100%</p>
+                <p className="text-xs text-neutral-500">{sample.sensors?.level?.distanceMm ?? '—'} mm · {TANK_EMPTY_MM} mm = 0% · {TANK_FULL_MM} mm = 100%</p>
                 {levelPercent !== undefined && <progress aria-label="Nível do tanque" value={levelPercent} max={100} className="mt-2 h-3 w-full accent-violet-600" />}
-                <p className="text-xs text-amber-700">Faixa de 4 mm: 1 mm equivale a 25 pontos percentuais.</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Vazão (ZJ-S201)</p>
