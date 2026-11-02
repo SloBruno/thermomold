@@ -20,6 +20,7 @@ constexpr uint32_t kFlowMaxPulseGapUs = 250000;
 
 // State touched by the ISR. In firmware it is only accessed inside a critical section.
 struct FlowPulseFilter {
+  uint32_t rawEdges = 0;
   bool hasEdge = false;
   uint32_t lastEdgeUs = 0;   // last FALLING edge seen, accepted or not
   uint32_t accepted = 0;     // accepted pulses in the current window
@@ -33,6 +34,7 @@ struct FlowPulseFilter {
 // high-frequency noise never produces counts. Unsigned math survives micros() rollover.
 // always_inline: called from an IRAM ISR, so it must not end up as a flash-resident call.
 inline __attribute__((always_inline)) bool flowPulseEdge(FlowPulseFilter &filter, uint32_t nowUs) {
+  ++filter.rawEdges;
   const bool quietLongEnough =
       !filter.hasEdge || static_cast<uint32_t>(nowUs - filter.lastEdgeUs) >= kFlowMinPulseIntervalUs;
   filter.hasEdge = true;
@@ -50,6 +52,7 @@ inline __attribute__((always_inline)) bool flowPulseEdge(FlowPulseFilter &filter
 }
 
 struct FlowWindow {
+  uint32_t rawEdges = 0;
   uint32_t pulses = 0;
   uint32_t windowMs = 0;
   uint32_t spanUs = 0;    // first to last accepted pulse
@@ -59,6 +62,8 @@ struct FlowWindow {
 // Closes the current window (caller holds the critical section in firmware).
 inline FlowWindow takeFlowWindow(FlowPulseFilter &filter, uint32_t windowMs) {
   FlowWindow window;
+  window.rawEdges = filter.rawEdges;
+  filter.rawEdges = 0;
   window.pulses = filter.accepted;
   window.windowMs = windowMs;
   window.spanUs = filter.accepted > 1 ? filter.lastAcceptedUs - filter.firstAcceptedUs : 0;

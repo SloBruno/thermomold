@@ -1,0 +1,193 @@
+ThermoMold firmware=0.1.12. Send d within 2 s for LOCAL diagnostics (no network, relays OFF).
+RAW_TEMP ms=501 hex1=0x0128 hex2=0x04C8 status1=0 status2=0 rawC1=9.25 rawC2=38.25 correctedC1=9.25 correctedC2=38.25 calibrationRevision=0
+RAW_TEMP ms=1002 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=1092 windowMs=1000 edges=771 accepted=213 rejected=558 rawHz=771.00 filteredLpm=0.00 totalPulses=0
+RAW_TEMP ms=1503 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=2004 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=2092 windowMs=1000 edges=729 accepted=225 rejected=504 rawHz=729.00 filteredLpm=30.00 totalPulses=438
+RAW_TEMP ms=2505 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=3006 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=3092 windowMs=1000 edges=661 accepted=231 rejected=430 rawHz=661.00 filteredLpm=30.80 totalPulses=669
+RAW_TEMP ms=3507 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=4008 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=4092 windowMs=1000 edges=635 accepted=233 rejected=402 rawHz=635.00 filteredLpm=31.07 totalPulses=902
+RAW_TEMP ms=4509 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=5010 hex1=0x0120 hex2=0x04D8 status1=0 status2=0 rawC1=9.00 rawC2=38.75 correctedC1=9.00 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=5092 windowMs=1000 edges=642 accepted=230 rejected=412 rawHz=642.00 filteredLpm=30.67 totalPulses=1132
+RAW_TEMP ms=5511 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=6012 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=6092 windowMs=1000 edges=670 accepted=228 rejected=442 rawHz=670.00 filteredLpm=30.40 totalPulses=1360
+RAW_TEMP ms=6513 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=7014 hex1=0x0120 hex2=0x04D0 status1=0 status2=0 rawC1=9.00 rawC2=38.50 correctedC1=9.00 correctedC2=38.50 calibrationRevision=0
+RAW_FLOW ms=7092 windowMs=1000 edges=730 accepted=216 rejected=514 rawHz=730.00 filteredLpm=28.80 totalPulses=1576
+RAW_TEMP ms=7515 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=8016 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=8092 windowMs=1000 edges=688 accepted=220 rejected=468 rawHz=688.00 filteredLpm=29.33 totalPulses=1796
+RAW_TEMP ms=8517 hex1=0x0128 hex2=0x04D8 status1=0 status2=0 rawC1=9.25 rawC2=38.75 correctedC1=9.25 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=9018 hex1=0x0130 hex2=0x04D8 status1=0 status2=0 rawC1=9.50 rawC2=38.75 correctedC1=9.50 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=9092 windowMs=1000 edges=695 accepted=219 rejected=476 rawHz=695.00 filteredLpm=29.20 totalPulses=2015
+RAW_TEMP ms=9519 hex1=0x0120 hex2=0x04D8 status1=0 status2=0 rawC1=9.00 rawC2=38.75 correctedC1=9.00 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=10020 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=10092 windowMs=1000 edges=659 accepted=223 rejected=436 rawHz=659.00 filteredLpm=29.73 totalPulses=2238
+RAW_TEMP ms=10521 hex1=0x0130 hex2=0x04F0 status1=0 status2=0 rawC1=9.50 rawC2=39.50 correctedC1=9.50 correctedC2=39.50 calibrationRevision=0
+RAW_TEMP ms=11022 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=11092 windowMs=1000 edges=687 accepted=222 rejected=465 rawHz=687.00 filteredLpm=29.60 totalPulses=2460
+RAW_TEMP ms=11523 hex1=0x0128 hex2=0x04D0 status1=0 status2=0 rawC1=9.25 rawC2=38.50 correctedC1=9.25 correctedC2=38.50 calibrationRevision=0
+RAW_TEMP ms=12024 hex1=0x0120 hex2=0x04D8 status1=0 status2=0 rawC1=9.00 rawC2=38.75 correctedC1=9.00 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=12092 windowMs=1000 edges=655 accepted=229 rejected=426 rawHz=655.00 filteredLpm=30.53 totalPulses=2689
+RAW_TEMP ms=12525 hex1=0x0130 hex2=0x04D8 status1=0 status2=0 rawC1=9.50 rawC2=38.75 correctedC1=9.50 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=13026 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=13092 windowMs=1000 edges=635 accepted=228 rejected=407 rawHz=635.00 filteredLpm=30.40 totalPulses=2917
+RAW_TEMP ms=13527 hex1=0x0118 hex2=0x04E8 status1=0 status2=0 rawC1=8.75 rawC2=39.25 correctedC1=8.75 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=14028 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=14092 windowMs=1000 edges=638 accepted=232 rejected=406 rawHz=638.00 filteredLpm=30.93 totalPulses=3149
+RAW_TEMP ms=14529 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=15030 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=15092 windowMs=1000 edges=641 accepted=225 rejected=416 rawHz=641.00 filteredLpm=30.00 totalPulses=3374
+RAW_TEMP ms=15531 hex1=0x0110 hex2=0x04E0 status1=0 status2=0 rawC1=8.50 rawC2=39.00 correctedC1=8.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=16032 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=16092 windowMs=1000 edges=645 accepted=224 rejected=421 rawHz=645.00 filteredLpm=29.87 totalPulses=3598
+RAW_TEMP ms=16533 hex1=0x0128 hex2=0x04D8 status1=0 status2=0 rawC1=9.25 rawC2=38.75 correctedC1=9.25 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=17034 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=17092 windowMs=1000 edges=631 accepted=226 rejected=405 rawHz=631.00 filteredLpm=30.13 totalPulses=3824
+RAW_TEMP ms=17535 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=18036 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=18092 windowMs=1000 edges=629 accepted=227 rejected=402 rawHz=629.00 filteredLpm=30.27 totalPulses=4051
+RAW_TEMP ms=18537 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=19038 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=19092 windowMs=1000 edges=628 accepted=226 rejected=402 rawHz=628.00 filteredLpm=30.13 totalPulses=4277
+RAW_TEMP ms=19539 hex1=0x0130 hex2=0x04D8 status1=0 status2=0 rawC1=9.50 rawC2=38.75 correctedC1=9.50 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=20040 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=20092 windowMs=1000 edges=608 accepted=229 rejected=379 rawHz=608.00 filteredLpm=30.53 totalPulses=4506
+RAW_TEMP ms=20541 hex1=0x0120 hex2=0x04D8 status1=0 status2=0 rawC1=9.00 rawC2=38.75 correctedC1=9.00 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=21042 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=21092 windowMs=1000 edges=607 accepted=232 rejected=375 rawHz=607.00 filteredLpm=30.93 totalPulses=4738
+RAW_TEMP ms=21543 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=22044 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=22092 windowMs=1000 edges=545 accepted=240 rejected=305 rawHz=545.00 filteredLpm=32.00 totalPulses=4978
+RAW_TEMP ms=22545 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=23046 hex1=0x0120 hex2=0x04F0 status1=0 status2=0 rawC1=9.00 rawC2=39.50 correctedC1=9.00 correctedC2=39.50 calibrationRevision=0
+RAW_FLOW ms=23092 windowMs=1000 edges=544 accepted=241 rejected=303 rawHz=544.00 filteredLpm=32.13 totalPulses=5219
+RAW_TEMP ms=23547 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=24048 hex1=0x0118 hex2=0x04E8 status1=0 status2=0 rawC1=8.75 rawC2=39.25 correctedC1=8.75 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=24092 windowMs=1000 edges=539 accepted=243 rejected=296 rawHz=539.00 filteredLpm=32.40 totalPulses=5462
+RAW_TEMP ms=24549 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=25050 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=25092 windowMs=1000 edges=565 accepted=235 rejected=330 rawHz=565.00 filteredLpm=31.33 totalPulses=5697
+RAW_TEMP ms=25551 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=26052 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=26092 windowMs=1000 edges=560 accepted=229 rejected=331 rawHz=560.00 filteredLpm=30.53 totalPulses=5926
+RAW_TEMP ms=26553 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=27054 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=27092 windowMs=1000 edges=574 accepted=243 rejected=331 rawHz=574.00 filteredLpm=32.40 totalPulses=6169
+RAW_TEMP ms=27555 hex1=0x0138 hex2=0x04E8 status1=0 status2=0 rawC1=9.75 rawC2=39.25 correctedC1=9.75 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=28056 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=28092 windowMs=1000 edges=566 accepted=235 rejected=331 rawHz=566.00 filteredLpm=31.33 totalPulses=6404
+RAW_TEMP ms=28557 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=29058 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=29092 windowMs=1000 edges=579 accepted=236 rejected=343 rawHz=579.00 filteredLpm=31.47 totalPulses=6640
+RAW_TEMP ms=29559 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=30060 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=30092 windowMs=1000 edges=582 accepted=232 rejected=350 rawHz=582.00 filteredLpm=30.93 totalPulses=6872
+RAW_TEMP ms=30561 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=31062 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=31092 windowMs=1000 edges=587 accepted=225 rejected=362 rawHz=587.00 filteredLpm=30.00 totalPulses=7097
+RAW_TEMP ms=31563 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=32064 hex1=0x0128 hex2=0x04D0 status1=0 status2=0 rawC1=9.25 rawC2=38.50 correctedC1=9.25 correctedC2=38.50 calibrationRevision=0
+RAW_FLOW ms=32092 windowMs=1000 edges=605 accepted=234 rejected=371 rawHz=605.00 filteredLpm=31.20 totalPulses=7331
+RAW_TEMP ms=32565 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=33066 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=33092 windowMs=1000 edges=618 accepted=230 rejected=388 rawHz=618.00 filteredLpm=30.67 totalPulses=7561
+RAW_TEMP ms=33567 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=34068 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=34092 windowMs=1000 edges=634 accepted=223 rejected=411 rawHz=634.00 filteredLpm=29.73 totalPulses=7784
+RAW_TEMP ms=34569 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=35070 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=35092 windowMs=1000 edges=602 accepted=233 rejected=369 rawHz=602.00 filteredLpm=31.07 totalPulses=8017
+RAW_TEMP ms=35571 hex1=0x0120 hex2=0x04D0 status1=0 status2=0 rawC1=9.00 rawC2=38.50 correctedC1=9.00 correctedC2=38.50 calibrationRevision=0
+RAW_TEMP ms=36072 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=36092 windowMs=1000 edges=634 accepted=227 rejected=407 rawHz=634.00 filteredLpm=30.27 totalPulses=8244
+RAW_TEMP ms=36573 hex1=0x0110 hex2=0x04E8 status1=0 status2=0 rawC1=8.50 rawC2=39.25 correctedC1=8.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=37074 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=37092 windowMs=1000 edges=656 accepted=225 rejected=431 rawHz=656.00 filteredLpm=30.00 totalPulses=8469
+RAW_TEMP ms=37575 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=38076 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=38092 windowMs=1000 edges=633 accepted=223 rejected=410 rawHz=633.00 filteredLpm=29.73 totalPulses=8692
+RAW_TEMP ms=38577 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=39078 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=39092 windowMs=1000 edges=658 accepted=246 rejected=412 rawHz=658.00 filteredLpm=32.80 totalPulses=8938
+RAW_TEMP ms=39579 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=40080 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=40092 windowMs=1000 edges=671 accepted=233 rejected=438 rawHz=671.00 filteredLpm=31.07 totalPulses=9171
+RAW_TEMP ms=40581 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=41082 hex1=0x0130 hex2=0x04F0 status1=0 status2=0 rawC1=9.50 rawC2=39.50 correctedC1=9.50 correctedC2=39.50 calibrationRevision=0
+RAW_FLOW ms=41094 windowMs=1002 edges=657 accepted=231 rejected=426 rawHz=655.69 filteredLpm=30.74 totalPulses=9402
+RAW_TEMP ms=41583 hex1=0x0128 hex2=0x04D0 status1=0 status2=0 rawC1=9.25 rawC2=38.50 correctedC1=9.25 correctedC2=38.50 calibrationRevision=0
+RAW_TEMP ms=42084 hex1=0x0128 hex2=0x04D8 status1=0 status2=0 rawC1=9.25 rawC2=38.75 correctedC1=9.25 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=42096 windowMs=1002 edges=611 accepted=232 rejected=379 rawHz=609.78 filteredLpm=30.87 totalPulses=9634
+RAW_TEMP ms=42585 hex1=0x0118 hex2=0x04F0 status1=0 status2=0 rawC1=8.75 rawC2=39.50 correctedC1=8.75 correctedC2=39.50 calibrationRevision=0
+RAW_TEMP ms=43086 hex1=0x0120 hex2=0x04D8 status1=0 status2=0 rawC1=9.00 rawC2=38.75 correctedC1=9.00 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=43098 windowMs=1002 edges=554 accepted=254 rejected=300 rawHz=552.89 filteredLpm=33.80 totalPulses=9888
+RAW_TEMP ms=43587 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=44088 hex1=0x0138 hex2=0x04E8 status1=0 status2=0 rawC1=9.75 rawC2=39.25 correctedC1=9.75 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=44100 windowMs=1002 edges=558 accepted=262 rejected=296 rawHz=556.89 filteredLpm=34.86 totalPulses=10150
+RAW_TEMP ms=44589 hex1=0x0118 hex2=0x04E0 status1=0 status2=0 rawC1=8.75 rawC2=39.00 correctedC1=8.75 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=45090 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=45102 windowMs=1002 edges=516 accepted=228 rejected=288 rawHz=514.97 filteredLpm=30.34 totalPulses=10378
+RAW_TEMP ms=45591 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=46092 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_FLOW ms=46104 windowMs=1002 edges=475 accepted=217 rejected=258 rawHz=474.05 filteredLpm=28.88 totalPulses=10595
+RAW_TEMP ms=46593 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=47094 hex1=0x0118 hex2=0x04E8 status1=0 status2=0 rawC1=8.75 rawC2=39.25 correctedC1=8.75 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=47106 windowMs=1002 edges=504 accepted=270 rejected=234 rawHz=502.99 filteredLpm=35.93 totalPulses=10865
+RAW_TEMP ms=47595 hex1=0x0120 hex2=0x04D0 status1=0 status2=0 rawC1=9.00 rawC2=38.50 correctedC1=9.00 correctedC2=38.50 calibrationRevision=0
+RAW_TEMP ms=48096 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=48108 windowMs=1002 edges=505 accepted=257 rejected=248 rawHz=503.99 filteredLpm=34.20 totalPulses=11122
+RAW_TEMP ms=48597 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=49098 hex1=0x0130 hex2=0x04D8 status1=0 status2=0 rawC1=9.50 rawC2=38.75 correctedC1=9.50 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=49110 windowMs=1002 edges=495 accepted=266 rejected=229 rawHz=494.01 filteredLpm=35.40 totalPulses=11388
+RAW_TEMP ms=49599 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=50100 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=50112 windowMs=1002 edges=503 accepted=266 rejected=237 rawHz=502.00 filteredLpm=35.40 totalPulses=11654
+RAW_TEMP ms=50601 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=51102 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=51114 windowMs=1002 edges=490 accepted=255 rejected=235 rawHz=489.02 filteredLpm=33.93 totalPulses=11909
+RAW_TEMP ms=51603 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=52104 hex1=0x0128 hex2=0x04D8 status1=0 status2=0 rawC1=9.25 rawC2=38.75 correctedC1=9.25 correctedC2=38.75 calibrationRevision=0
+RAW_FLOW ms=52116 windowMs=1002 edges=551 accepted=246 rejected=305 rawHz=549.90 filteredLpm=32.73 totalPulses=12155
+RAW_TEMP ms=52605 hex1=0x0138 hex2=0x04E8 status1=0 status2=0 rawC1=9.75 rawC2=39.25 correctedC1=9.75 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=53106 hex1=0x0130 hex2=0x04D0 status1=0 status2=0 rawC1=9.50 rawC2=38.50 correctedC1=9.50 correctedC2=38.50 calibrationRevision=0
+RAW_FLOW ms=53118 windowMs=1002 edges=504 accepted=244 rejected=260 rawHz=502.99 filteredLpm=32.47 totalPulses=12399
+RAW_TEMP ms=53607 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=54108 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=54120 windowMs=1002 edges=501 accepted=254 rejected=247 rawHz=500.00 filteredLpm=33.80 totalPulses=12653
+RAW_TEMP ms=54609 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=55110 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=55122 windowMs=1002 edges=498 accepted=269 rejected=229 rawHz=497.01 filteredLpm=35.80 totalPulses=12922
+RAW_TEMP ms=55611 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=56112 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=56124 windowMs=1002 edges=471 accepted=252 rejected=219 rawHz=470.06 filteredLpm=33.53 totalPulses=13174
+RAW_TEMP ms=56613 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=57114 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=57126 windowMs=1002 edges=536 accepted=246 rejected=290 rawHz=534.93 filteredLpm=32.73 totalPulses=13420
+RAW_TEMP ms=57615 hex1=0x0120 hex2=0x04E0 status1=0 status2=0 rawC1=9.00 rawC2=39.00 correctedC1=9.00 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=58116 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=58128 windowMs=1002 edges=532 accepted=257 rejected=275 rawHz=530.94 filteredLpm=34.20 totalPulses=13677
+RAW_TEMP ms=58617 hex1=0x0130 hex2=0x04D8 status1=0 status2=0 rawC1=9.50 rawC2=38.75 correctedC1=9.50 correctedC2=38.75 calibrationRevision=0
+RAW_TEMP ms=59118 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=59130 windowMs=1002 edges=606 accepted=253 rejected=353 rawHz=604.79 filteredLpm=33.67 totalPulses=13930
+RAW_TEMP ms=59619 hex1=0x0130 hex2=0x04E0 status1=0 status2=0 rawC1=9.50 rawC2=39.00 correctedC1=9.50 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=60120 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=60132 windowMs=1002 edges=575 accepted=262 rejected=313 rawHz=573.85 filteredLpm=34.86 totalPulses=14192
+RAW_TEMP ms=60621 hex1=0x0120 hex2=0x04E8 status1=0 status2=0 rawC1=9.00 rawC2=39.25 correctedC1=9.00 correctedC2=39.25 calibrationRevision=0
+RAW_TEMP ms=61122 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=61134 windowMs=1002 edges=609 accepted=240 rejected=369 rawHz=607.78 filteredLpm=31.94 totalPulses=14432
+RAW_TEMP ms=61623 hex1=0x0120 hex2=0x04F0 status1=0 status2=0 rawC1=9.00 rawC2=39.50 correctedC1=9.00 correctedC2=39.50 calibrationRevision=0
+RAW_TEMP ms=62124 hex1=0x0128 hex2=0x04E8 status1=0 status2=0 rawC1=9.25 rawC2=39.25 correctedC1=9.25 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=62136 windowMs=1002 edges=580 accepted=258 rejected=322 rawHz=578.84 filteredLpm=34.33 totalPulses=14690
+RAW_TEMP ms=62625 hex1=0x0128 hex2=0x04E0 status1=0 status2=0 rawC1=9.25 rawC2=39.00 correctedC1=9.25 correctedC2=39.00 calibrationRevision=0
+RAW_TEMP ms=63126 hex1=0x0130 hex2=0x04E8 status1=0 status2=0 rawC1=9.50 rawC2=39.25 correctedC1=9.50 correctedC2=39.25 calibrationRevision=0
+RAW_FLOW ms=63138 windowMs=1002 edges=607 accepted=258 rejected=349 rawHz=605.79 filteredLpm=34.33 totalPulses=14948
+RAW_TEMP ms=63627 hex1=0x0130 hex2=0x04F0 status1=0 status2=0 rawC1=9.50 rawC2=39.50 correctedC1=9.50 correctedC2=39.50 calibrationRevision=0
+RAW_TEMP ms=64128 hex1=0x0128 hex2=0x04F0 status1=0 status2=0 rawC1=9.25 rawC2=39.50 correctedC1=9.25 correctedC2=39.50 calibrationRevision=0
+RAW_FLOW ms=64140 windowMs=1002 edges=587 accepted=249 rejected=338 rawHz=585.83 filteredLpm=33.13 totalPulses=15197

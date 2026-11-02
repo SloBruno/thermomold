@@ -136,6 +136,19 @@ portMUX_TYPE flowMux = portMUX_INITIALIZER_UNLOCKED;
 FlowMeter flowMeter;
 uint32_t flowWindowStartedAt = 0;
 float flowLpm = 0.0f;
+bool serialDiagnostics = false;
+bool localDiagnosticsOnly = false;
+uint32_t lastTemperatureReadMs = 0;
+
+void printTemperatureDiagnostics(uint16_t a, uint16_t b) {
+  const auto one = decodeMax6675Frame(a);
+  const auto two = decodeMax6675Frame(b);
+  Serial.printf("RAW_TEMP ms=%lu hex1=0x%04X hex2=0x%04X status1=%u status2=%u rawC1=%.2f rawC2=%.2f correctedC1=%.2f correctedC2=%.2f calibrationRevision=%lu\n",
+    millis(), a, b, one.status, two.status, one.celsius, two.celsius,
+    applyTemperatureCalibration(one.celsius, calibration.sensorOne),
+    applyTemperatureCalibration(two.celsius, calibration.sensorTwo), (unsigned long)calibration.revision);
+}
+
 
 LevelBurst levelBurst;
 uint32_t levelDistanceMm = 0;   // last burst median; 0 = unavailable
@@ -204,6 +217,9 @@ void updateFlow() {
   portEXIT_CRITICAL(&flowMux);
   flowMeterUpdate(flowMeter, window);
   flowLpm = flowMeter.lpm;
+  if (serialDiagnostics) Serial.printf("RAW_FLOW ms=%lu windowMs=%lu edges=%lu accepted=%lu rejected=%lu rawHz=%.2f filteredLpm=%.2f totalPulses=%lu\n",
+    now, windowMs, window.rawEdges, window.pulses, window.rawEdges-window.pulses,
+    window.rawEdges*1000.0/windowMs, flowLpm, flowMeter.totalPulses);
   flowWindowStartedAt = now;
 }
 
@@ -548,6 +564,8 @@ void updateLevel(unsigned long now) {
 void reportTemperature() {
   const uint16_t rawOne = readMax6675Frame(kThermocoupleOnePins);
   const uint16_t rawTwo = readMax6675Frame(kThermocoupleTwoPins);
+  lastTemperatureReadMs = millis();
+  if (serialDiagnostics) printTemperatureDiagnostics(rawOne, rawTwo);
   const Max6675Reading sensorOne = decodeMax6675Frame(rawOne);
   const Max6675Reading sensorTwo = decodeMax6675Frame(rawTwo);
   const uint8_t sensorOneStatus = sensorOne.status;
@@ -610,14 +628,38 @@ void setup() {
   // Format a blank/corrupted LittleFS partition so portal settings persist after reset.
   if (!LittleFS.begin(true)) Serial.println("LittleFS unavailable; settings will not persist.");
   loadConfig();
-  provisionWiFiAndSettings();
-  configureOtaClock();
+  Serial.printf("ThermoMold firmware=%s. Send d within 2 s for LOCAL diagnostics (no network, relays OFF).\n", THERMOMOLD_FIRMWARE_VERSION);
+  const uint32_t start = millis();
+  while (millis()-start < 2000) {
+    if (Serial.available() && Serial.read() == 'd') { localDiagnosticsOnly = serialDiagnostics = true; break; }
+    delay(5);
+  }
+  if (!localDiagnosticsOnly) {
+    provisionWiFiAndSettings();
+    configureOtaClock();
+  }
   configureSensor();
   nextReportAt = millis();
   nextOtaCheckAt = millis();
 }
 
 void loop() {
+  if (Serial.available()) {
+    const char c = Serial.read();
+    if (c == 'd') serialDiagnostics = true;
+    if (c == 'q') serialDiagnostics = false;
+  }
+  if (localDiagnosticsOnly) {
+    updateFlow();
+    if (millis()-lastTemperatureReadMs >= 500) {
+      const uint16_t a=readMax6675Frame(kThermocoupleOnePins);
+      const uint16_t b=readMax6675Frame(kThermocoupleTwoPins);
+      lastTemperatureReadMs=millis();
+      if (serialDiagnostics) printTemperatureDiagnostics(a,b);
+    }
+    delay(1);
+    return;
+  }
   ensureWiFi();
   updateFlow();
   enforcePumpFailSafe();
