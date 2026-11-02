@@ -18,6 +18,9 @@ export interface FlowReading {
   sensor: 'ZJ-S201'
   litersPerMinute: number
   totalLiters: number
+  rawTotalPulses?: number
+  counterEpoch?: string
+  pulsesPerLiter?: number
 }
 
 export interface MultiSensorReadings {
@@ -91,14 +94,23 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
 
   let flow: FlowReading | undefined
   if (sensors.flow !== undefined) {
-    const item = sensors.flow as { sensor?: unknown; litersPerMinute?: unknown; totalLiters?: unknown } | null
+    const item = sensors.flow as { sensor?: unknown; litersPerMinute?: unknown; totalLiters?: unknown;
+      rawTotalPulses?: unknown; counterEpoch?: unknown; pulsesPerLiter?: unknown } | null
     const isValidAmount = (amount: unknown): amount is number =>
       typeof amount === 'number' && Number.isFinite(amount) && amount >= 0
     if (typeof item !== 'object' || item === null || item.sensor !== 'ZJ-S201'
       || !isValidAmount(item.litersPerMinute) || !isValidAmount(item.totalLiters)) {
       return { ok: false, error: 'leitura ZJ-S201 inválida' }
     }
-    flow = { sensor: 'ZJ-S201', litersPerMinute: item.litersPerMinute, totalLiters: item.totalLiters }
+    const hasRaw = item.rawTotalPulses !== undefined || item.counterEpoch !== undefined || item.pulsesPerLiter !== undefined
+    if (hasRaw && (!Number.isSafeInteger(item.rawTotalPulses) || (item.rawTotalPulses as number) < 0
+      || typeof item.counterEpoch !== 'string' || !/^[A-Za-z0-9._:-]{1,96}$/.test(item.counterEpoch)
+      || typeof item.pulsesPerLiter !== 'number' || !Number.isFinite(item.pulsesPerLiter) || item.pulsesPerLiter <= 0)) {
+      return { ok: false, error: 'contador bruto ZJ-S201 inválido: informe rawTotalPulses, counterEpoch e pulsesPerLiter' }
+    }
+    flow = { sensor: 'ZJ-S201', litersPerMinute: item.litersPerMinute, totalLiters: item.totalLiters,
+      ...(hasRaw ? { rawTotalPulses: item.rawTotalPulses as number, counterEpoch: item.counterEpoch as string,
+        pulsesPerLiter: item.pulsesPerLiter as number } : {}) }
   }
 
   return {

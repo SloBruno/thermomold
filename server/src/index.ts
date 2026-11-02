@@ -6,6 +6,8 @@ import { resolve } from 'path';
 import type { SimulatorState, DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from '../../shared/types';
 import { createTelemetryStore, normalizeTelemetry } from './telemetry.js';
 import { createPumpStore } from './pumps.js';
+import { createFlowCalibration } from './flow-calibration.js';
+import { flowCalibrationRouter } from './flow-calibration-routes.js';
 import { createCalibrationStore, createFileCalibrationPersistence } from './calibration.js';
 
 const CP_WATER = 4.18;
@@ -45,6 +47,15 @@ const calibrationFile = process.env.CALIBRATION_FILE ?? resolve(process.cwd(), '
 const calibrationStore = createCalibrationStore(createFileCalibrationPersistence(calibrationFile));
 // Desired pump state; always starts OFF so a backend restart never turns pumps on.
 const pumpStore = createPumpStore();
+const flowCalibration = createFlowCalibration(pumpStore);
+app.use('/api/flow-calibration', flowCalibrationRouter(flowCalibration, () => io.emit('pumps:data', pumpStore.get())));
+// This watchdog only removes ON commands; it never energizes hardware.
+setInterval(() => {
+  const before = pumpStore.get();
+  flowCalibration.tick();
+  const after = pumpStore.get();
+  if (before.pump1 !== after.pump1 || before.pump2 !== after.pump2) io.emit('pumps:data', after);
+}, 500).unref();
 
 let state: SimulatorState = {
   ambientTemp: 25,
@@ -487,6 +498,14 @@ app.get('/api/pumps', (_req, res) => {
 });
 
 app.post('/api/pumps', (req, res) => {
+  flowCalibration.tick();
+  if (flowCalibration.active()) {
+    if (req.body?.pump1 === true || req.body?.pump2 === true) {
+      res.status(409).json({ error: 'Calibração em andamento. Pare a coleta antes de comandar bombas.' });
+      return;
+    }
+    if (req.body?.pump1 === false || req.body?.pump2 === false) flowCalibration.abort('Coleta cancelada por comando manual OFF.');
+  }
   const result = pumpStore.set(req.body);
   if (!result.ok) {
     res.status(400).json({ error: result.error });
@@ -511,6 +530,7 @@ app.post('/api/telemetry', (req, res) => {
   }
 
   const sample = telemetryStore.save(normalized.value);
+  flowCalibration.observe(sample);
   const status = telemetryStore.getStatus();
   io.emit('telemetry:data', status);
   // The ESP32 applies these commands; missing/failed responses make it turn pumps off.

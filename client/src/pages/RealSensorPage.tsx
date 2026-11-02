@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import socket from '../lib/socket'
+import FlowCalibrationPanel from '../components/FlowCalibrationPanel'
 
 type ThermocoupleReading = {
   id: 'max6675-1' | 'max6675-2'
@@ -143,6 +144,8 @@ export default function RealSensorPage() {
         <div className={`rounded-xl border p-4 text-sm font-bold ${statusClasses}`}>
           Status da conexão: {statusLabel}
         </div>
+
+        <FlowCalibrationPanel />
 
         {!error && max6675Warnings.length > 0 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800" role="alert">
