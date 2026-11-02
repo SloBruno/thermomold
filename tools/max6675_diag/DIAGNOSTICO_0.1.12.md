@@ -1,5 +1,25 @@
 # Diagnóstico integrado — firmware 0.1.12
 
+## Comparação independente e ponto de gelo pendente
+
+Comando `h` apenas no modo local alterna entre software SPI e dois periféricos
+SPI de hardware (HSPI/VSPI, 100 kHz, modo 0, mesmos GPIOs). Não afeta a leitura
+normal nem os relés. Log inclui `READER=software` ou `READER=hardware`.
+
+Em banho de gelo informado pelo operador:
+- Software, 59 pares: canal 1 = 0 C; canal 2 média 17,2627 C (16,75–17,75 C).
+- Hardware, 69 pares: canal 1 = 0 C; canal 2 = 17,5 C.
+- Ambos com status 0. Calibração permanece identidade, revisão 0.
+
+Captura: `capture_hardware_spi_ice.txt`. Ponto de referência 0 C e estatísticas
+em `calibration_ice_pending.json`, ainda NÃO aplicados ao dispositivo. A segunda
+referência deve ser medida com termômetro independente; temperatura ambiente
+nominal não é referência. Confirmar resposta do canal 1 ao aquecer antes de
+calibrar: quadro zerado pode ser 0 C real ou linha presa e, se não responder,
+calibração não resolve. Aplicar ajuste linear por canal só com pontos válidos:
+`T = refLow + (raw-rawLow)*(refHigh-refLow)/(rawHigh-rawLow)`.
+
+
 Serial USB: 115200 baud. Fonte externa desligada durante USB.
 
 - Enviar `d` nos primeiros 2 s após reset: modo LOCAL, sem Wi-Fi/HTTP/OTA; saídas de relé mantidas em OFF. Temperaturas a cada 500 ms e vazão a cada ~1 s. Não apaga configuração nem calibra.

@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <SPI.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <LittleFS.h>
@@ -136,11 +137,25 @@ portMUX_TYPE flowMux = portMUX_INITIALIZER_UNLOCKED;
 FlowMeter flowMeter;
 uint32_t flowWindowStartedAt = 0;
 float flowLpm = 0.0f;
+SPIClass diagnosticSpiOne(HSPI);
+SPIClass diagnosticSpiTwo(VSPI);
+bool diagnosticHardwareSpi = false;
 bool serialDiagnostics = false;
 bool localDiagnosticsOnly = false;
 uint32_t lastTemperatureReadMs = 0;
 
+uint16_t readHardwareDiagnostic(SPIClass &spi, const Max6675Pins &pins) {
+  spi.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
+  digitalWrite(pins.cs, LOW);
+  delayMicroseconds(10);
+  const uint16_t frame = spi.transfer16(0);
+  digitalWrite(pins.cs, HIGH);
+  spi.endTransaction();
+  return frame;
+}
+
 void printTemperatureDiagnostics(uint16_t a, uint16_t b) {
+  Serial.printf("READER=%s ", diagnosticHardwareSpi ? "hardware" : "software");
   const auto one = decodeMax6675Frame(a);
   const auto two = decodeMax6675Frame(b);
   Serial.printf("RAW_TEMP ms=%lu hex1=0x%04X hex2=0x%04X status1=%u status2=%u rawC1=%.2f rawC2=%.2f correctedC1=%.2f correctedC2=%.2f calibrationRevision=%lu\n",
@@ -648,12 +663,24 @@ void loop() {
     const char c = Serial.read();
     if (c == 'd') serialDiagnostics = true;
     if (c == 'q') serialDiagnostics = false;
+    if (c == 'h' && localDiagnosticsOnly) {
+      diagnosticHardwareSpi = !diagnosticHardwareSpi;
+      if (diagnosticHardwareSpi) {
+        diagnosticSpiOne.begin(kThermocoupleOneSckPin,kThermocoupleOneSoPin,-1,-1);
+        diagnosticSpiTwo.begin(kThermocoupleTwoSckPin,kThermocoupleTwoSoPin,-1,-1);
+      } else {
+        diagnosticSpiOne.end(); diagnosticSpiTwo.end();
+        configureMax6675Pins(kThermocoupleOnePins);
+        configureMax6675Pins(kThermocoupleTwoPins);
+      }
+      lastTemperatureReadMs = millis();
+    }
   }
   if (localDiagnosticsOnly) {
     updateFlow();
     if (millis()-lastTemperatureReadMs >= 500) {
-      const uint16_t a=readMax6675Frame(kThermocoupleOnePins);
-      const uint16_t b=readMax6675Frame(kThermocoupleTwoPins);
+      const uint16_t a=diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiOne,kThermocoupleOnePins) : readMax6675Frame(kThermocoupleOnePins);
+      const uint16_t b=diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiTwo,kThermocoupleTwoPins) : readMax6675Frame(kThermocoupleTwoPins);
       lastTemperatureReadMs=millis();
       if (serialDiagnostics) printTemperatureDiagnostics(a,b);
     }

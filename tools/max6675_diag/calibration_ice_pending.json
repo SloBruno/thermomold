@@ -1,0 +1,37 @@
+{
+  "referenceC": 0.0,
+  "referenceSource": "operator: probes in ice-water bath; pending confirmation of stability",
+  "applied": false,
+  "methods": {
+    "software": {
+      "n": 59,
+      "rawC1": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "stdev": 0.0
+      },
+      "rawC2": {
+        "mean": 17.26271186440678,
+        "min": 16.75,
+        "max": 17.75,
+        "stdev": 0.2410417398869134
+      }
+    },
+    "hardware": {
+      "n": 69,
+      "rawC1": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "stdev": 0.0
+      },
+      "rawC2": {
+        "mean": 17.5,
+        "min": 17.5,
+        "max": 17.5,
+        "stdev": 0.0
+      }
+    }
+  }
+}
