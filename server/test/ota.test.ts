@@ -72,7 +72,7 @@ test('OTA manifest requires the configured device key', async t => {
   assert.deepEqual(await authorized.json(), {
     version: '0.1.13',
     url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: 'bba79f72b3d95e19fe51f124adfa83780e1e06000344cfa4238405e8cca0cf6d',
+    sha256: 'f9c57946467ab339382aa09ad834334c2ac60dcb3102edb639012b7fb56b8644',
   })
 })
 
@@ -86,6 +86,6 @@ test('serves OTA public files under the /ota path', async t => {
   assert.deepEqual(await response.json(), {
     version: '0.1.13',
     url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: 'bba79f72b3d95e19fe51f124adfa83780e1e06000344cfa4238405e8cca0cf6d',
+    sha256: 'f9c57946467ab339382aa09ad834334c2ac60dcb3102edb639012b7fb56b8644',
   })
 })

@@ -3,49 +3,14 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import socket from '../lib/socket'
 import FlowCalibrationPanel from '../components/FlowCalibrationPanel'
 
-type ThermocoupleReading = {
-  id: 'max6675-1' | 'max6675-2'
-  temperatureC: number
-  rawTemperatureC?: number
-}
+import type { TelemetryStatus, TemperatureC } from '../../../shared/types'
 
-type LevelReading = {
-  sensor: 'AJ-SR04M'
-  distanceMm: number
-}
-
-type FlowReading = {
-  sensor: 'ZJ-S201'
-  litersPerMinute: number
-  totalLiters: number
-}
-
-type TelemetrySample = {
-  deviceId: string
-  temperatureC: number
-  rawTemperatureC?: number
-  calibrationRevision?: number
-  observedAt: string
-  sensor: 'MAX6675'
-  sensors?: {
-    thermocouples: [ThermocoupleReading, ThermocoupleReading]
-    level?: LevelReading
-    flow?: FlowReading
-  }
-  pumps?: { pump1: boolean; pump2: boolean }
-  diagnostics?: { max6675Status: [number, number] }
-  receivedAt: string
-}
-
-type TelemetryStatus =
-  | { connected: false; status: 'offline'; stale: true; sample: null }
-  | { connected: true; status: 'online' | 'stale'; stale: boolean; sample: TelemetrySample }
 
 type ChartPoint = {
   observedAt: string
   time: string
-  temperature1: number
-  temperature2?: number
+  temperature1: TemperatureC
+  temperature2?: TemperatureC
   levelMm?: number
   flowLpm?: number
 }
@@ -53,7 +18,7 @@ type ChartPoint = {
 const apiBaseUrl = import.meta.env.VITE_SOCKET_URL || ''
 
 function describeMax6675Status(status: number): string {
-  if (status === 0x81) return 'sem comunicação'
+  if (status === 0x81) return 'quadro inválido ou zero ambíguo; leitura indisponível'
   if (status === 0x04) return 'termopar aberto'
   if (status === 0x80) return 'sem leitura'
   return 'falha de leitura'
@@ -106,7 +71,7 @@ export default function RealSensorPage() {
       const point: ChartPoint = {
         observedAt: sample.observedAt,
         time: new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(sample.observedAt)),
-        temperature1: temperatures?.[0]?.temperatureC ?? sample.temperatureC,
+        temperature1: temperatures ? temperatures[0].temperatureC : sample.temperatureC,
         temperature2: temperatures?.[1]?.temperatureC,
         levelMm: sample.sensors?.level?.distanceMm,
         flowLpm: sample.sensors?.flow?.litersPerMinute,
@@ -165,9 +130,10 @@ export default function RealSensorPage() {
               <div>
                 <p className="text-sm font-medium text-neutral-500">MAX6675 #1</p>
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
-                  {(sample.sensors?.thermocouples[0].temperatureC ?? sample.temperatureC).toFixed(2)} °C
+                  {(sample.sensors ? sample.sensors.thermocouples[0].temperatureC : sample.temperatureC)?.toFixed(2) ?? 'Indisponível'}
+                  {sample.temperatureC !== null ? ' °C' : ''}
                 </p>
-                {sample.rawTemperatureC !== undefined && <p className="text-xs text-neutral-500">Bruta: {sample.rawTemperatureC.toFixed(2)} °C</p>}
+                {sample.rawTemperatureC != null && <p className="text-xs text-neutral-500">Bruta: {sample.rawTemperatureC.toFixed(2)} °C</p>}
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Revisão de calibração</p>
@@ -176,8 +142,8 @@ export default function RealSensorPage() {
               <div>
                 <p className="text-sm font-medium text-neutral-500">MAX6675 #2</p>
                 <p className="text-3xl font-bold tabular-nums text-neutral-900">
-                  {sample.sensors?.thermocouples?.[1]?.temperatureC?.toFixed(2) ?? '—'}
-                  {sample.sensors?.thermocouples?.[1]?.temperatureC !== undefined ? ' °C' : ''}
+                  {sample.sensors?.thermocouples?.[1]?.temperatureC?.toFixed(2) ?? 'Indisponível'}
+                  {sample.sensors?.thermocouples?.[1]?.temperatureC != null ? ' °C' : ''}
                 </p>
               </div>
               <div>
@@ -220,7 +186,7 @@ export default function RealSensorPage() {
                   <div className="h-64 rounded-lg border border-neutral-200 p-3">
                     <p className="mb-2 text-sm font-bold text-neutral-700">Temperaturas</p>
                     <ResponsiveContainer width="100%" height="90%">
-                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis unit=" °C" /><Tooltip /><Legend /><Line type="monotone" dataKey="temperature1" name="MAX6675 #1" stroke="#dc2626" dot={false} /><Line type="monotone" dataKey="temperature2" name="MAX6675 #2" stroke="#2563eb" dot={false} connectNulls /></LineChart>
+                      <LineChart data={history}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={45} /><YAxis unit=" °C" /><Tooltip /><Legend /><Line type="monotone" dataKey="temperature1" name="MAX6675 #1" stroke="#dc2626" dot={false} /><Line type="monotone" dataKey="temperature2" name="MAX6675 #2" stroke="#2563eb" dot={false} connectNulls={false} /></LineChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="h-64 rounded-lg border border-neutral-200 p-3">

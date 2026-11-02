@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdio>
 #include <cstdint>
 #include <string>
@@ -31,6 +32,7 @@ inline std::string escapeJsonString(const std::string &value) {
 }
 
 inline std::string formatTemperatureC(double temperatureC) {
+  if (!std::isfinite(temperatureC)) return "null";
   char temperature[24];
   std::snprintf(temperature, sizeof(temperature), "%.2f", temperatureC);
   std::string formatted(temperature);
@@ -59,9 +61,9 @@ inline std::string withRawFlowCounters(std::string payload, uint64_t pulses,
 }
 
 inline unsigned long minimumTelemetryIntervalMs() {
-  // Each sample creates a fresh TLS connection. Keep this rate low enough for
-  // ESP32 heap/socket cleanup and free-tier HTTPS backends to remain stable.
-  return 5000;
+  // Each report opens a fresh TLS connection; validate heap and backend load
+  // at this cadence on the deployed system.
+  return 2500;
 }
 
 inline std::string defaultTelemetryEndpoint() {

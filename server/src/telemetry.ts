@@ -1,50 +1,15 @@
+import type { FlowReading, LevelReading, MultiSensorReadings, TelemetrySample, TelemetryStatus, TemperatureC, ThermocoupleReading } from '../../shared/types.js'
 import type { PumpState } from './pumps.js'
+export type { ThermocoupleReading, LevelReading, FlowReading, MultiSensorReadings, TelemetrySample, TelemetryStatus } from '../../shared/types.js'
 
 export const K_TYPE_MIN_C = -200
 export const K_TYPE_MAX_C = 1350
 
-export interface ThermocoupleReading {
-  id: 'max6675-1' | 'max6675-2'
-  rawTemperatureC?: number
-  temperatureC: number
+function isTemperature(value: unknown): value is TemperatureC {
+  return value === null || (typeof value === 'number' && Number.isFinite(value)
+    && value >= K_TYPE_MIN_C && value <= K_TYPE_MAX_C)
 }
 
-export interface LevelReading {
-  sensor: 'AJ-SR04M'
-  distanceMm: number
-}
-
-export interface FlowReading {
-  sensor: 'ZJ-S201'
-  litersPerMinute: number
-  totalLiters: number
-  rawTotalPulses?: number
-  counterEpoch?: string
-  pulsesPerLiter?: number
-}
-
-export interface MultiSensorReadings {
-  thermocouples: [ThermocoupleReading, ThermocoupleReading]
-  level?: LevelReading
-  flow?: FlowReading
-}
-
-export interface TelemetrySample {
-  deviceId: string
-  temperatureC: number
-  rawTemperatureC?: number
-  calibrationRevision?: number
-  observedAt: string
-  sensor: 'MAX6675'
-  sensors?: MultiSensorReadings
-  pumps?: PumpState
-  diagnostics?: { max6675Status: [number, number]; max6675Raw?: [number, number]; levelRawMm?: number[] }
-  receivedAt: string
-}
-
-export type TelemetryStatus =
-  | { connected: false; status: 'offline'; stale: true; sample: null }
-  | { connected: true; status: 'online' | 'stale'; stale: boolean; sample: TelemetrySample }
 
 type TelemetryInput = {
   deviceId?: unknown
@@ -71,10 +36,8 @@ function normalizeSensors(value: unknown): { ok: true; value: MultiSensorReading
     if (typeof reading !== 'object' || reading === null) return null
     const item = reading as { id?: unknown; rawTemperatureC?: unknown; temperatureC?: unknown }
     const expectedId = `max6675-${index + 1}`
-    if (item.id !== expectedId || typeof item.temperatureC !== 'number' || !Number.isFinite(item.temperatureC)
-      || item.temperatureC < K_TYPE_MIN_C || item.temperatureC > K_TYPE_MAX_C) return null
-    if (item.rawTemperatureC !== undefined && (typeof item.rawTemperatureC !== 'number'
-      || !Number.isFinite(item.rawTemperatureC) || item.rawTemperatureC < K_TYPE_MIN_C || item.rawTemperatureC > K_TYPE_MAX_C)) return null
+    if (item.id !== expectedId || !isTemperature(item.temperatureC)) return null
+    if (item.rawTemperatureC !== undefined && !isTemperature(item.rawTemperatureC)) return null
     return {
       id: expectedId as ThermocoupleReading['id'],
       ...(item.rawTemperatureC === undefined ? {} : { rawTemperatureC: item.rawTemperatureC }),
@@ -140,13 +103,11 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'deviceId inválido' }
   }
 
-  if (typeof payload.temperatureC !== 'number' || !Number.isFinite(payload.temperatureC)
-    || payload.temperatureC < K_TYPE_MIN_C || payload.temperatureC > K_TYPE_MAX_C) {
+  if (!isTemperature(payload.temperatureC)) {
     return { ok: false, error: 'temperatureC deve ser um número finito entre -200 e 1350' }
   }
 
-  if (payload.rawTemperatureC !== undefined && (typeof payload.rawTemperatureC !== 'number'
-    || !Number.isFinite(payload.rawTemperatureC) || payload.rawTemperatureC < K_TYPE_MIN_C || payload.rawTemperatureC > K_TYPE_MAX_C)) {
+  if (payload.rawTemperatureC !== undefined && !isTemperature(payload.rawTemperatureC)) {
     return { ok: false, error: 'rawTemperatureC deve ser um número finito entre -200 e 1350' }
   }
   if (payload.calibrationRevision !== undefined && (!Number.isInteger(payload.calibrationRevision) || (payload.calibrationRevision as number) < 0)) {

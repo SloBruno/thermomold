@@ -2,6 +2,29 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { normalizeTelemetry } from '../src/telemetry.ts'
 
+test('preserves independent unavailable thermocouples and all other sensors', () => {
+  for (const temperatures of [[null, 24.25], [21.5, null], [null, null]]) {
+    const payload = {
+      deviceId: 'esp32-test', temperatureC: temperatures[0], rawTemperatureC: temperatures[0],
+      sensors: {
+        thermocouples: temperatures.map((temperatureC, i) => ({ id: `max6675-${i+1}`, temperatureC, rawTemperatureC: temperatureC })),
+        level: { sensor: 'AJ-SR04M', distanceMm: 350 },
+        flow: { sensor: 'ZJ-S201', litersPerMinute: 2.4, totalLiters: 1 },
+      },
+      pumps: { pump1: true, pump2: false },
+      diagnostics: { max6675Status: temperatures.map(t => t === null ? 129 : 0), max6675Raw: [0, 776] },
+    }
+    const result = normalizeTelemetry(payload)
+    assert.equal(result.ok, true)
+    if (result.ok) {
+      assert.equal(result.value.temperatureC, temperatures[0])
+      assert.deepEqual(result.value.sensors, payload.sensors)
+      assert.deepEqual(result.value.pumps, payload.pumps)
+    }
+  }
+  assert.equal(normalizeTelemetry({ deviceId: 'esp32-test', temperatureC: null }).ok, true)
+})
+
 test('normalizes a valid MAX6675 telemetry payload', () => {
   const observedAt = '2026-09-10T12:30:00.000Z'
 

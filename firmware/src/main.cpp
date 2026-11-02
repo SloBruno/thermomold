@@ -576,7 +576,7 @@ uint32_t pingLevelDistanceMm() {
 // Non-blocking level burst: one ping per loop() pass, >= 70 ms apart, started ~1 s
 // before each report so the median of 5 pings is fresh when telemetry is built.
 void updateLevel(unsigned long now) {
-  if (!levelBurst.active && static_cast<long>(nextReportAt - now) <= 1000) levelBurstStart(levelBurst);
+  if (!levelBurst.active && static_cast<int32_t>(static_cast<uint32_t>(nextReportAt - now)) <= 1000) levelBurstStart(levelBurst);
   if (!levelBurstPingDue(levelBurst, now)) return;
   levelBurstRecord(levelBurst, millis(), pingLevelDistanceMm());
   if (levelBurstComplete(levelBurst)) {
@@ -608,28 +608,14 @@ void reportTemperature() {
                              levelRawMm[0] + "," + levelRawMm[1] + "," + levelRawMm[2] + "," + levelRawMm[3] + "," +
                              levelRawMm[4] + "]}";
   if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
-    Serial.printf("MAX6675 sensor error (status %u, %u, raw 0x%04X, 0x%04X); publishing unavailable readings.\n",
+    Serial.printf("MAX6675 sensor error (status %u, %u, raw 0x%04X, 0x%04X); only failed channels unavailable.\n",
                   sensorOneStatus, sensorTwoStatus, rawOne, rawTwo);
-    pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()), 0, 0, 0,
-                                               flowLpm, litersFromPulses(flowMeter.totalPulses), pump1On,
-                                               pump2On, 0, 0, calibration.revision).c_str();
-    pendingPayload.remove(pendingPayload.length() - 1);
-    pendingPayload += diagnostics + "}";
-    addRawFlowCountersToPayload();
-    if (postPayload(pendingPayload)) {
-      pendingPayload = "";
-      retryDelayMs = kInitialRetryDelayMs;
-    } else {
-      scheduleRetry();
-    }
-    return;
+
   }
-  const float thermocoupleOneC = sensorOne.celsius;
-  const float thermocoupleTwoC = sensorTwo.celsius;
-  if (!isValidTemperatureReading(thermocoupleOneC) || !isValidTemperatureReading(thermocoupleTwoC)) {
-    Serial.println("MAX6675 produced an invalid temperature; measurement discarded.");
-    return;
-  }
+  // Never substitute a numeric sentinel or a previous/other channel's value.
+  // NAN is internal only: the JSON contract serializes it as explicit null.
+  const float thermocoupleOneC = sensorOneStatus == kMax6675StatusOk ? sensorOne.celsius : NAN;
+  const float thermocoupleTwoC = sensorTwoStatus == kMax6675StatusOk ? sensorTwo.celsius : NAN;
   const bool levelAvailable = isValidLevelDistanceMm(levelDistanceMm);
   if (!levelAvailable) {
     Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
@@ -724,14 +710,16 @@ void loop() {
   ensureWiFi();
   updateFlow();
   enforcePumpFailSafe();
-  const unsigned long now = millis();
-  if (now >= nextOtaCheckAt) {
+  // Signed modular deadline comparisons tolerate millis() rollover (provided
+  // deadlines are less than 2^31 ms away). Refresh after blocking operations.
+  if (static_cast<int32_t>(static_cast<uint32_t>(millis() - nextOtaCheckAt)) >= 0) {
     checkForOtaUpdate();
     // NTP synchronization starts asynchronously. Retry soon until TLS has a valid clock;
     // once valid, retain the normal 15-minute polling interval.
-    nextOtaCheckAt = now + (hasValidOtaTime() ? kOtaCheckIntervalMs : 30000UL);
+    nextOtaCheckAt = millis() + (hasValidOtaTime() ? kOtaCheckIntervalMs : 30000UL);
   }
-  if (!pendingPayload.isEmpty() && now >= nextRetryAt) {
+  if (!pendingPayload.isEmpty() &&
+      static_cast<int32_t>(static_cast<uint32_t>(millis() - nextRetryAt)) >= 0) {
     if (postPayload(pendingPayload)) {
       pendingPayload = "";
       retryDelayMs = kInitialRetryDelayMs;
@@ -739,10 +727,13 @@ void loop() {
       scheduleRetry();
     }
   }
-  updateLevel(now);
-  if (pendingPayload.isEmpty() && now >= nextReportAt) {
-    nextReportAt = now + minimumTelemetryIntervalMs();
+  updateLevel(millis());
+  if (pendingPayload.isEmpty() &&
+      static_cast<int32_t>(static_cast<uint32_t>(millis() - nextReportAt)) >= 0) {
     reportTemperature();
+    // The POST inside reportTemperature can block: start the next interval only
+    // after it returns, so the MAX6675 conversion is never interrupted early.
+    nextReportAt = millis() + minimumTelemetryIntervalMs();
     levelDistanceMm = 0;  // each report uses a fresh 5-ping median or reports unavailable
     for (size_t index = 0; index < kLevelSamplesPerBurst; ++index) levelRawMm[index] = 0;
   }

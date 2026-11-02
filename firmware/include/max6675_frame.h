@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <cmath>
 
 // MAX6675 16-bit frame decoding (datasheet, Maxim/Analog Devices):
 //   D15     dummy sign bit, always 0
@@ -25,13 +26,11 @@ struct Max6675Reading {
   float celsius;
 };
 
-// D15 and D1 must be zero. 0xFFFF is invalid. An all-zero frame is a
-// legitimate 0 C conversion: the data alone cannot distinguish it from a
-// stuck-low SO wire. Keep the raw frame visible rather than inventing a fault.
+// Zero C is legitimate; a zero frame alone cannot prove stuck-low SO.
 inline Max6675Reading decodeMax6675Frame(uint16_t raw) {
-  if (raw == 0xFFFF || (raw & 0x8000u) != 0 || (raw & 0x0002u) != 0) {
-    return {kMax6675StatusNoCommunication, 0.0f};
+  if (raw == 0xFFFF || (raw & 0x8002u) != 0) {
+    return {kMax6675StatusNoCommunication, NAN};
   }
-  if ((raw & 0x0004u) != 0) return {kMax6675StatusOpen, 0.0f};
+  if ((raw & 0x0004u) != 0) return {kMax6675StatusOpen, NAN};
   return {kMax6675StatusOk, static_cast<float>(raw >> 3) * 0.25f};
 }

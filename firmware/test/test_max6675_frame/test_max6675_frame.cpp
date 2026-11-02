@@ -1,4 +1,5 @@
 #include <unity.h>
+#include <initializer_list>
 
 #include "max6675_frame.h"
 
