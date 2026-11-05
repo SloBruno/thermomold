@@ -21,6 +21,7 @@ type TelemetryInput = {
   sensors?: unknown
   pumps?: unknown
   diagnostics?: unknown
+  control?: unknown
 }
 
 type NormalizedTelemetry = Omit<TelemetrySample, 'receivedAt'>
@@ -122,6 +123,12 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'observedAt deve ser um timestamp ISO-8601 válido' }
   }
 
+  const control = payload.control as { deviceSession?: unknown; mode?: unknown; session?: unknown; revision?: unknown } | undefined
+  if (payload.control !== undefined && (!control || typeof control !== 'object' || Array.isArray(control)
+    || typeof control.deviceSession !== 'string' || !/^[A-Za-z0-9._:-]{1,96}$/.test(control.deviceSession)
+    || !['manual', 'automatic'].includes(control.mode as string) || typeof control.session !== 'string'
+    || !/^[A-Za-z0-9._:-]{0,96}$/.test(control.session) || !Number.isInteger(control.revision)
+    || (control.revision as number) < 0 || (control.revision as number) > 0xffffffff)) return { ok: false, error: 'controle de enchimento inválido' }
   const sensors = payload.sensors === undefined ? undefined : normalizeSensors(payload.sensors)
   if (sensors && !sensors.ok) return sensors
   if (sensors && sensors.value.thermocouples[0].temperatureC !== payload.temperatureC) {
@@ -151,6 +158,7 @@ export function normalizeTelemetry(payload: TelemetryInput):
     ok: true,
     value: {
       deviceId,
+      ...(control ? { control: control as NonNullable<TelemetrySample['control']> } : {}),
       temperatureC: payload.temperatureC,
       ...(payload.rawTemperatureC === undefined ? {} : { rawTemperatureC: payload.rawTemperatureC }),
       ...(payload.calibrationRevision === undefined ? {} : { calibrationRevision: payload.calibrationRevision as number }),

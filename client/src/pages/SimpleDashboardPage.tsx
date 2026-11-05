@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import socket from '../lib/socket'
+import FillingControl from '../components/FillingControl'
 import type { DashboardData, MachineData, MoldLibrary, MoldParameters, SensorParameter } from 'shared/types'
 
 interface IdealRange {
@@ -471,6 +472,7 @@ export default function SimpleDashboardPage() {
 
   return (
     <div className="p-6 space-y-4 bg-white min-h-[calc(100vh-4rem)]">
+      <FillingControl />
       <HeaderCard
         machine={machine}
         timestamp={data?.timestamp ?? ''}

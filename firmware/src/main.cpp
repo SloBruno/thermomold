@@ -15,6 +15,7 @@
 #include <mbedtls/sha256.h>
 
 #include "actuators.h"
+#include "pump_control.h"
 #include "calibration.h"
 #include "flow_filter.h"
 #include "flow_calibration.h"
@@ -129,8 +130,9 @@ unsigned long nextOtaCheckAt = 0;
 
 bool pump1On = false;
 bool pump2On = false;
-uint32_t lastPumpCommandAt = 0;
-bool hasPumpCommand = false;
+PumpControl pumpControl;
+SemaphoreHandle_t controlMutex;
+uint32_t nextLevelBurstAt = 0;
 
 // Shared with the flow ISR; always accessed under flowMux.
 FlowPulseFilter flowFilter;
@@ -194,10 +196,6 @@ uint8_t relayLevel(bool on) {
 }
 
 void applyPumps(bool nextPump1, bool nextPump2) {
-  if (nextPump1 != pump1On || nextPump2 != pump2On) {
-    Serial.printf("Pumps -> pump1=%s pump2=%s\n", nextPump1 ? "ON" : "OFF",
-                  nextPump2 ? "ON" : "OFF");
-  }
   pump1On = nextPump1;
   pump2On = nextPump2;
   digitalWrite(kPump1RelayPin, relayLevel(pump1On));
@@ -215,15 +213,9 @@ void configurePumpsOff() {
 }
 
 void enforcePumpFailSafe() {
-  if (!pump1On && !pump2On) return;
-  const bool wifiLost = WiFi.status() != WL_CONNECTED;
-  const bool expired = !hasPumpCommand ||
-                       pumpCommandExpired(lastPumpCommandAt, millis(), kPumpCommandTimeoutMs);
-  if (wifiLost || expired) {
-    Serial.println(wifiLost ? "Wi-Fi lost; pumps OFF (fail-safe)."
-                            : "No backend command for 3 s; pumps OFF (fail-safe).");
-    applyPumps(false, false);
-  }
+  // Called only under controlMutex, including when automatic currently wants OFF.
+  pumpControl.safety(millis(), WiFi.status() == WL_CONNECTED);
+  applyPumps(pumpControl.pump1, pumpControl.pump2);
 }
 
 void updateFlow() {
@@ -492,7 +484,11 @@ bool downloadAndInstallOta(const OtaManifest &manifest) {
 void checkForOtaUpdate() {
   if (WiFi.status() != WL_CONNECTED || config.deviceKey.isEmpty() || !hasValidOtaTime()) return;
   // Never block a commanded pump or queued telemetry retry for a firmware download.
-  if (pump1On || pump2On || !pendingPayload.isEmpty()) return;
+  if (!pendingPayload.isEmpty()) return;
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  const bool busy = pump1On || pump2On || pumpControl.fill.enabled;
+  xSemaphoreGive(controlMutex);
+  if (busy) return;
 
   OtaManifest manifest;
   if (!fetchOtaManifest(manifest)) return;
@@ -535,13 +531,10 @@ bool postPayload(const String &payload) {
     }
     const PumpCommand command = parsePumpCommand(std::string(body.c_str()));
     applyCalibrationCommand(body);
-    if (command.valid) {
-      lastPumpCommandAt = millis();
-      hasPumpCommand = true;
-      applyPumps(command.pump1, command.pump2);
-    } else {
-      applyPumps(false, false);  // Backend without pump commands: stay safe.
-    }
+    xSemaphoreTake(controlMutex, portMAX_DELAY);
+    pumpControl.command(command, std::string(flowCounterEpoch.c_str()), millis());
+    enforcePumpFailSafe();
+    xSemaphoreGive(controlMutex);
     return true;
   };
 
@@ -569,22 +562,41 @@ uint32_t pingLevelDistanceMm() {
   const uint32_t elapsedUs = micros() - startedUs;
   if (elapsedUs > levelWorstPingUs) {
     levelWorstPingUs = elapsedUs;
-    Serial.printf("AJ-SR04M worst single ping so far: %.1f ms\n", elapsedUs / 1000.0f);
   }
   return distanceMm;
 }
 
-// Non-blocking level burst: one ping per loop() pass, >= 70 ms apart, started ~1 s
-// before each report so the median of 5 pings is fresh when telemetry is built.
+// One ping per cycle, >=70 ms apart; complete a new 5-ping burst every ~400 ms.
+// Independent of report cadence and blocking HTTP/OTA; no cached sample is counted.
 void updateLevel(unsigned long now) {
-  if (!levelBurst.active && static_cast<int32_t>(static_cast<uint32_t>(nextReportAt - now)) <= 1000) levelBurstStart(levelBurst);
+  if (!levelBurst.active && static_cast<int32_t>(uint32_t(now-nextLevelBurstAt)) >= 0) {
+    levelBurstStart(levelBurst);
+    nextLevelBurstAt = now + 400;
+  }
   if (!levelBurstPingDue(levelBurst, now)) return;
-  levelBurstRecord(levelBurst, millis(), pingLevelDistanceMm());
+  const uint32_t distance = pingLevelDistanceMm();
+  const uint32_t completedAt = millis();
+  levelBurstRecord(levelBurst, completedAt, distance);
   if (levelBurstComplete(levelBurst)) {
+    xSemaphoreTake(controlMutex, portMAX_DELAY);
     levelDistanceMm = levelBurstResultMm(levelBurst);
     for (size_t index = 0; index < kLevelSamplesPerBurst; ++index) levelRawMm[index] = levelBurst.samples[index];
+    pumpControl.sample(completedAt, levelDistanceMm);
+    enforcePumpFailSafe();
+    xSemaphoreGive(controlMutex);
     levelBurst.active = false;
   }
+}
+
+void controlCycle() {
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  enforcePumpFailSafe();
+  xSemaphoreGive(controlMutex);
+  updateLevel(millis());
+}
+
+void controlTask(void *) {
+  for (;;) { controlCycle(); vTaskDelay(pdMS_TO_TICKS(5)); }
 }
 
 double calibratedFlowTotalLiters() {
@@ -603,6 +615,16 @@ void addRawFlowCountersToPayload() {
 }
 
 void reportTemperature() {
+  // Snapshot shared control/level data; never hold the mutex during network I/O.
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  const uint32_t snapshotDistanceMm = levelDistanceMm;
+  uint32_t snapshotRawMm[kLevelSamplesPerBurst];
+  for (size_t i=0;i<kLevelSamplesPerBurst;++i) snapshotRawMm[i]=levelRawMm[i];
+  const bool snapshotPump1=pump1On, snapshotPump2=pump2On;
+  const bool automatic=pumpControl.fill.enabled;
+  const std::string commandSession=pumpControl.session;
+  const uint32_t commandRevision=pumpControl.revision;
+  xSemaphoreGive(controlMutex);
   const uint16_t rawOne = readMax6675Frame(kThermocoupleOnePins);
   const uint16_t rawTwo = readMax6675Frame(kThermocoupleTwoPins);
   lastTemperatureReadMs = millis();
@@ -613,8 +635,8 @@ void reportTemperature() {
   const uint8_t sensorTwoStatus = sensorTwo.status;
   const String diagnostics = String(",\"diagnostics\":{\"max6675Status\":[") + sensorOneStatus + "," +
                              sensorTwoStatus + "],\"max6675Raw\":[" + rawOne + "," + rawTwo + "],\"levelRawMm\":[" +
-                             levelRawMm[0] + "," + levelRawMm[1] + "," + levelRawMm[2] + "," + levelRawMm[3] + "," +
-                             levelRawMm[4] + "]}";
+                             snapshotRawMm[0] + "," + snapshotRawMm[1] + "," + snapshotRawMm[2] + "," + snapshotRawMm[3] + "," +
+                             snapshotRawMm[4] + "]}";
   if (sensorOneStatus != 0 || sensorTwoStatus != 0) {
     Serial.printf("MAX6675 sensor error (status %u, %u, raw 0x%04X, 0x%04X); only failed channels unavailable.\n",
                   sensorOneStatus, sensorTwoStatus, rawOne, rawTwo);
@@ -624,23 +646,31 @@ void reportTemperature() {
   // NAN is internal only: the JSON contract serializes it as explicit null.
   const float thermocoupleOneC = sensorOneStatus == kMax6675StatusOk ? sensorOne.celsius : NAN;
   const float thermocoupleTwoC = sensorTwoStatus == kMax6675StatusOk ? sensorTwo.celsius : NAN;
-  const bool levelAvailable = isValidLevelDistanceMm(levelDistanceMm);
+  const bool levelAvailable = isValidLevelDistanceMm(snapshotDistanceMm);
   if (!levelAvailable) {
     Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
   }
   pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()),
                                              applyTemperatureCalibration(thermocoupleOneC, calibration.sensorOne),
                                              applyTemperatureCalibration(thermocoupleTwoC, calibration.sensorTwo),
-                                             levelAvailable ? levelDistanceMm : 0, flowLpm,
-                                             calibratedFlowTotalLiters(), pump1On,
-                                             pump2On, thermocoupleOneC, thermocoupleTwoC,
+                                             levelAvailable ? snapshotDistanceMm : 0, flowLpm,
+                                             calibratedFlowTotalLiters(), snapshotPump1,
+                                             snapshotPump2, thermocoupleOneC, thermocoupleTwoC,
                                              calibration.revision).c_str();
   pendingPayload.remove(pendingPayload.length() - 1);
   pendingPayload += diagnostics + "}";
   addRawFlowCountersToPayload();
+  JsonDocument payloadDocument;
+  deserializeJson(payloadDocument, pendingPayload);
+  payloadDocument["control"]["deviceSession"] = flowCounterEpoch;
+  payloadDocument["control"]["mode"] = automatic ? "automatic" : "manual";
+  payloadDocument["control"]["session"] = commandSession;
+  payloadDocument["control"]["revision"] = commandRevision;
+  pendingPayload = "";
+  serializeJson(payloadDocument, pendingPayload);
   if (postPayload(pendingPayload)) {
     Serial.printf("Telemetry posted: %.2f C, %.2f C, %s, %.2f L/min\n", thermocoupleOneC,
-                  thermocoupleTwoC, levelAvailable ? (String(levelDistanceMm) + " mm").c_str() : "level unavailable",
+                  thermocoupleTwoC, levelAvailable ? (String(snapshotDistanceMm) + " mm").c_str() : "level unavailable",
                   flowLpm);
     pendingPayload = "";
     retryDelayMs = kInitialRetryDelayMs;
@@ -672,6 +702,11 @@ void setup() {
     configureOtaClock();
   }
   configureSensor();
+  controlMutex = xSemaphoreCreateMutex();
+  if (!controlMutex) { configurePumpsOff(); ESP.restart(); }
+  // A separate task keeps level decisions/watchdogs alive during blocking TLS/HTTP.
+  if (!localDiagnosticsOnly && xTaskCreatePinnedToCore(controlTask, "tank-control", 4096,
+      nullptr, 2, nullptr, 1) != pdPASS) { configurePumpsOff(); ESP.restart(); }
   nextReportAt = millis();
   nextOtaCheckAt = millis();
 }
@@ -717,7 +752,6 @@ void loop() {
   }
   ensureWiFi();
   updateFlow();
-  enforcePumpFailSafe();
   // Signed modular deadline comparisons tolerate millis() rollover (provided
   // deadlines are less than 2^31 ms away). Refresh after blocking operations.
   if (static_cast<int32_t>(static_cast<uint32_t>(millis() - nextOtaCheckAt)) >= 0) {
@@ -735,14 +769,11 @@ void loop() {
       scheduleRetry();
     }
   }
-  updateLevel(millis());
   if (pendingPayload.isEmpty() &&
       static_cast<int32_t>(static_cast<uint32_t>(millis() - nextReportAt)) >= 0) {
     reportTemperature();
     // The POST inside reportTemperature can block: start the next interval only
     // after it returns, so the MAX6675 conversion is never interrupted early.
     nextReportAt = millis() + minimumTelemetryIntervalMs();
-    levelDistanceMm = 0;  // each report uses a fresh 5-ping median or reports unavailable
-    for (size_t index = 0; index < kLevelSamplesPerBurst; ++index) levelRawMm[index] = 0;
   }
 }

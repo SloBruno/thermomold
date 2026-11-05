@@ -31,6 +31,7 @@ export function createFlowCalibration(pumps: ReturnType<typeof createPumpStore>,
   function start(referenceMl: unknown) {
     tick()
     if (active()) throw new Error('Já existe uma coleta em andamento.')
+    if (pumps.control().mode === 'automatic') throw new Error('Desative o enchimento automático antes de iniciar a coleta.')
     if (typeof referenceMl !== 'number' || !Number.isFinite(referenceMl) || referenceMl <= 0 || referenceMl > 1_000_000) {
       throw new Error('Volume de referência deve estar entre 0 e 1.000.000 mL (maior que zero).')
     }

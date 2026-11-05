@@ -77,7 +77,9 @@ export interface MultiSensorReadings {
   level?: LevelReading;
   flow?: FlowReading;
 }
+export interface FillingFeedback { deviceSession: string; mode: 'manual' | 'automatic'; session: string; revision: number }
 export interface TelemetrySample {
+  control?: FillingFeedback;
   deviceId: string;
   temperatureC: TemperatureC;
   rawTemperatureC?: TemperatureC;

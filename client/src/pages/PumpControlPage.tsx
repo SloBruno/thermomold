@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import socket from '../lib/socket'
+import FillingControl from '../components/FillingControl'
 
 type PumpId = 'pump1' | 'pump2'
 type PumpState = Record<PumpId, boolean>
@@ -76,10 +77,11 @@ export default function PumpControlPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white p-6">
       <section className="mx-auto max-w-2xl space-y-5">
+        <FillingControl />
         <header className="space-y-1">
           <h2 className="text-2xl font-bold text-neutral-900">Controle de Bombas</h2>
           <p className="text-sm text-neutral-500">
-            Liga/desliga manual. O ESP32 desliga as bombas sozinho se perder o Wi-Fi ou o servidor por 3 segundos.
+            Liga/desliga manual. O ESP32 desliga as bombas sozinho se perder o Wi-Fi ou o servidor por 8 segundos (watchdog de comandos).
           </p>
         </header>
 
@@ -127,7 +129,6 @@ export default function PumpControlPage() {
                   </button>
                   <button
                     type="button"
-                    disabled={pending === pump.id || !wanted}
                     onClick={() => { void command(pump.id, false) }}
                     className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
                   >

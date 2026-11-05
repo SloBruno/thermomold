@@ -19,6 +19,12 @@ prefix = r'''
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
 #include "calibration.h"
+#include "pump_control.h"
+#include "level_filter.h"
+int controlMutex=0,portMAX_DELAY=0;
+void xSemaphoreTake(int,int){} void xSemaphoreGive(int){}
+PumpControl pumpControl;
+std::string flowCounterEpoch="test-boot";
 class String : public std::string {
 public:
   using std::string::string;
@@ -68,8 +74,8 @@ int main() {
 with tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR')) as temp:
     cpp = Path(temp) / 'guardrails.cpp'
     exe = Path(temp) / 'guardrails.exe'
-    cpp.write_text(prefix + report + checks)
-    subprocess.run(['g++', '-std=c++11', '-I'+str(root/'include'), str(cpp), '-o', str(exe)], check=True)
+    cpp.write_text(prefix + report.replace('deserializeJson(payloadDocument, pendingPayload)', 'deserializeJson(payloadDocument, static_cast<const std::string&>(pendingPayload))').replace('serializeJson(payloadDocument, pendingPayload)', 'serializeJson(payloadDocument, static_cast<std::string&>(pendingPayload))') + checks)
+    subprocess.run(['g++', '-std=c++11', '-I'+str(root/'include'), '-I'+str(root/'.pio/libdeps/native/ArduinoJson/src'), str(cpp), '-o', str(exe)], check=True)
     rows = [json.loads(line) for line in subprocess.check_output([str(exe)], text=True).splitlines()]
 expected = [(1,26.25),(25.25,None),(None,2),(25.25,34),(None,26.25),(1,26.25),(1,26.25),(1,26.25)]
 assert len(rows) == len(expected)

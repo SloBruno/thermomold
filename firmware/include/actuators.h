@@ -1,73 +1,49 @@
 #pragma once
-
 #include <cstdint>
 #include <string>
+#include <ArduinoJson.h>
 
-// ZJ-S201 (YF-S201 family): pulse frequency Hz = 7.5 * flow L/min.
-// Calibrate this constant against a measured volume if readings drift.
 constexpr float kFlowPulsesPerSecondPerLpm = 7.5f;
-// Telemetry posts every 5 s (minimumTelemetryIntervalMs). A 3 s command timeout
-// previously turned a commanded pump OFF for ~2 s before the next command arrived,
-// producing a repeating relay click. Eight seconds leaves 3 s of transport margin
-// while still failing safe after a missed response. Wi-Fi loss remains immediate.
+// 5 s telemetry + 3 s transport margin; Wi-Fi loss remains immediate.
 constexpr unsigned long kPumpCommandTimeoutMs = 8000;
-
 inline float flowLitersPerMinute(unsigned long pulses, unsigned long windowMs) {
   if (windowMs == 0) return 0.0f;
-  const float pulsesPerSecond = (pulses * 1000.0f) / windowMs;
-  return pulsesPerSecond / kFlowPulsesPerSecondPerLpm;
+  return (pulses * 1000.0f / windowMs) / kFlowPulsesPerSecondPerLpm;
 }
-
 inline float litersFromPulses(unsigned long pulses) {
   return pulses / (kFlowPulsesPerSecondPerLpm * 60.0f);
 }
-
-// millis() is 32-bit on ESP32; fixed-width unsigned subtraction stays correct across rollover.
-inline bool pumpCommandExpired(uint32_t lastCommandAtMs, uint32_t nowMs, uint32_t timeoutMs) {
-  return static_cast<uint32_t>(nowMs - lastCommandAtMs) > timeoutMs;
+inline bool pumpCommandExpired(uint32_t last, uint32_t now, uint32_t timeout) {
+  return static_cast<uint32_t>(now-last)>timeout;
 }
-
 struct PumpCommand {
-  bool valid = false;
-  bool pump1 = false;
-  bool pump2 = false;
+  bool valid=false, pump1=false, pump2=false, automatic=false;
+  bool versioned=false;
+  std::string session, deviceSession;
+  uint32_t revision=0;
 };
-
-namespace pump_command_detail {
-// Returns 1 for true, 0 for false, -1 when the key is missing or not a boolean.
-inline int readBool(const std::string &object, const std::string &key) {
-  const std::string needle = "\"" + key + "\":";
-  const size_t at = object.find(needle);
-  if (at == std::string::npos) return -1;
-  const size_t valueAt = at + needle.size();
-  if (object.compare(valueAt, 4, "true") == 0) return 1;
-  if (object.compare(valueAt, 5, "false") == 0) return 0;
-  return -1;
-}
-}  // namespace pump_command_detail
-
-// Parses only commands.pumps from the backend response. The response also carries
-// sample.pumps (the ESP's prior state); searching the first "pumps" object used that
-// stale sample and silently ignored every new command.
-// Any missing or malformed command yields an invalid, all-off command (fail-safe).
+// Decode only the exact commands.pumps path. Legacy commands stay manual.
 inline PumpCommand parsePumpCommand(const std::string &body) {
-  PumpCommand command;
-  const std::string commandsMarker = "\"commands\":{";
-  const size_t commandsStart = body.find(commandsMarker);
-  if (commandsStart == std::string::npos) return command;
-  const std::string pumpsMarker = "\"pumps\":{";
-  const size_t start = body.find(pumpsMarker, commandsStart + commandsMarker.size());
-  if (start == std::string::npos) return command;
-  const size_t end = body.find('}', start + pumpsMarker.size());
-  if (end == std::string::npos) return command;
-
-  const std::string object = body.substr(start + pumpsMarker.size(), end - start - pumpsMarker.size());
-  const int pump1 = pump_command_detail::readBool(object, "pump1");
-  const int pump2 = pump_command_detail::readBool(object, "pump2");
-  if (pump1 < 0 || pump2 < 0) return command;
-
-  command.valid = true;
-  command.pump1 = pump1 == 1;
-  command.pump2 = pump2 == 1;
-  return command;
+  PumpCommand c;
+  JsonDocument doc;
+  if (deserializeJson(doc, body)) return c;
+  JsonVariantConst p=doc["commands"]["pumps"];
+  if (!p.is<JsonObjectConst>() || !p["pump1"].is<bool>() || !p["pump2"].is<bool>()) return c;
+  if (!p["mode"].isNull()) {
+    if (!p["mode"].is<const char *>()) return c;
+    const std::string mode=p["mode"].as<const char *>();
+    if (mode!="manual" && mode!="automatic") return c;
+    c.automatic=mode=="automatic";
+  }
+  const bool hasVersion=!p["session"].isNull() || !p["revision"].isNull() || !p["deviceSession"].isNull();
+  if (hasVersion || c.automatic) {
+    if (!p["session"].is<const char *>() || !p["deviceSession"].is<const char *>() || !p["revision"].is<uint32_t>()) return PumpCommand{};
+    c.session=p["session"].as<const char *>(); c.deviceSession=p["deviceSession"].as<const char *>();
+    if (c.session.empty() || c.session.size()>96 || c.deviceSession.empty() || c.deviceSession.size()>96) return PumpCommand{};
+    c.versioned=true; c.revision=p["revision"].as<uint32_t>();
+  }
+  c.pump1=p["pump1"].as<bool>(); c.pump2=p["pump2"].as<bool>();
+  if (c.automatic && (c.pump1 || c.pump2)) return PumpCommand{};
+  c.valid=true;
+  return c;
 }

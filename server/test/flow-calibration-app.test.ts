@@ -33,4 +33,22 @@ test('app sends both commands to fake ESP and manual OFF invalidates calibration
   assert.deepEqual(await (await post('/api/pumps', { pump1: false })).json(), { pump1: false, pump2: false })
   assert.equal((await (await fetch(base + '/api/flow-calibration')).json()).phase, 'failed')
   assert.deepEqual((await (await post('/api/telemetry', sample)).json()).commands.pumps, { pump1: false, pump2: false })
+  // Capable firmware registers a volatile boot/session; legacy payloads remain manual.
+  const capable = { ...sample, control: { deviceSession: 'boot-1', mode: 'manual', session: '', revision: 0 } }
+  let command = (await (await post('/api/telemetry', capable)).json()).commands.pumps
+  assert.equal(command.mode, 'manual')
+  let view = await (await fetch(base + '/api/filling')).json()
+  assert.equal((await post('/api/filling', { mode: 'automatic', session: view.session, revision: view.revision })).status, 200)
+  command = (await (await post('/api/telemetry', capable)).json()).commands.pumps
+  assert.equal(command.mode, 'automatic')
+  assert.equal((await post('/api/flow-calibration/start', { referenceMl: 500 })).status, 409)
+  assert.equal((await post('/api/pumps', { pump1: false })).status, 200)
+  assert.equal((await (await fetch(base + '/api/filling')).json()).mode, 'manual')
+  view = await (await fetch(base + '/api/filling')).json()
+  await post('/api/filling', { mode: 'automatic', session: view.session, revision: view.revision })
+  const newBoot = { ...capable, control: { ...capable.control, deviceSession: 'boot-2' } }
+  command = (await (await post('/api/telemetry', newBoot)).json()).commands.pumps
+  assert.equal(command.mode, 'manual')
+  assert.equal(command.deviceSession, 'boot-2')
+  assert.equal((await post('/api/filling', { mode: 'automatic', session: view.session, revision: view.revision })).status, 409)
 })

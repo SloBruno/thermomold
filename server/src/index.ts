@@ -493,6 +493,25 @@ app.post('/api/calibration', (req, res) => {
   res.json(result.value);
 });
 
+app.get('/api/filling', (_req, res) => { res.json(pumpStore.control()) });
+app.post('/api/filling', (req, res) => {
+  flowCalibration.tick();
+  if (req.body?.mode === 'automatic' && flowCalibration.active()) {
+    res.status(409).json({ error: 'Pare a coleta antes de habilitar o automático.' }); return;
+  }
+  if (req.body?.mode === 'automatic') {
+    const sample = telemetryStore.getStatus().sample;
+    if (!sample?.control || Date.now() - Date.parse(sample.receivedAt) > 8000) {
+      res.status(409).json({ error: 'Aguarde telemetria recente de firmware compatível.' }); return;
+    }
+  }
+  const result = pumpStore.setMode(req.body);
+  if (!result.ok) { res.status(409).json({ error: result.error }); return; }
+  if (req.body.mode === 'manual' && flowCalibration.active()) flowCalibration.abort('Coleta cancelada por comando manual OFF.');
+  io.emit('pumps:data', pumpStore.get());
+  res.json(pumpStore.control());
+});
+
 app.get('/api/pumps', (_req, res) => {
   res.json(pumpStore.get());
 });
@@ -530,6 +549,15 @@ app.post('/api/telemetry', (req, res) => {
   }
 
   const sample = telemetryStore.save(normalized.value);
+  if (sample.control) {
+    pumpStore.register(sample.control.deviceSession);
+    const desired = pumpStore.control();
+    // A local watchdog/stop is latched: never keep offering a spent enable revision.
+    if (desired.mode === 'automatic' && sample.control.mode === 'manual'
+      && sample.control.session === desired.session && sample.control.revision === desired.revision) {
+      pumpStore.setMode({ mode: 'manual' });
+    }
+  } else if (pumpStore.control().mode === 'automatic') pumpStore.setMode({ mode: 'manual' });
   flowCalibration.observe(sample);
   const status = telemetryStore.getStatus();
   io.emit('telemetry:data', status);
@@ -537,7 +565,7 @@ app.post('/api/telemetry', (req, res) => {
   res.status(202).json({
     accepted: true,
     sample,
-    commands: { pumps: pumpStore.get(), calibration: calibrationStore.get() },
+    commands: { pumps: sample.control ? pumpStore.control() : pumpStore.get(), calibration: calibrationStore.get() },
   });
 });
 
