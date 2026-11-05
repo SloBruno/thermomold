@@ -22,6 +22,8 @@ type TelemetryInput = {
   pumps?: unknown
   diagnostics?: unknown
   control?: unknown
+  temperatureAlarm?: unknown
+  firmwareVersion?: unknown
 }
 
 type NormalizedTelemetry = Omit<TelemetrySample, 'receivedAt'>
@@ -135,6 +137,27 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'temperatureC deve corresponder ao max6675-1' }
   }
 
+  let temperatureAlarm: TelemetrySample['temperatureAlarm']
+  if (payload.temperatureAlarm !== undefined) {
+    const alarm = payload.temperatureAlarm as { state?: unknown; deltaC?: unknown } | null
+    const pair = sensors?.value.thermocouples
+    const validPair = pair && pair.every(item => typeof item.temperatureC === 'number')
+    const delta = validPair ? Math.abs(pair[0].temperatureC! - pair[1].temperatureC!) : null
+    if (!alarm || Array.isArray(alarm) || typeof alarm !== 'object'
+      || !['unknown','normal','pending','warning','severe'].includes(alarm.state as string)
+      || (alarm.state === 'unknown' ? alarm.deltaC !== null
+        : !validPair || typeof alarm.deltaC !== 'number' || !Number.isFinite(alarm.deltaC)
+          || Math.abs(alarm.deltaC - delta!) > 0.02
+          || (alarm.state === 'normal' ? alarm.deltaC > 3 || alarm.deltaC < 0
+            : alarm.state === 'severe' ? alarm.deltaC <= 5 : alarm.deltaC <= 3 || alarm.deltaC > 5))) {
+      return { ok: false, error: 'alarme de temperatura inválido' }
+    }
+    temperatureAlarm = { state: alarm.state as NonNullable<TelemetrySample['temperatureAlarm']>['state'], deltaC: alarm.deltaC as number | null }
+  }
+  if (payload.firmwareVersion !== undefined && (typeof payload.firmwareVersion !== 'string'
+    || !/^\d+\.\d+\.\d+$/.test(payload.firmwareVersion) || payload.firmwareVersion.length > 32)) {
+    return { ok: false, error: 'firmwareVersion inválida' }
+  }
   const pumps = payload.pumps === undefined ? undefined : normalizePumps(payload.pumps)
   if (pumps && !pumps.ok) return pumps
   const diagnostics = payload.diagnostics as { max6675Status?: unknown; max6675Raw?: unknown; levelRawMm?: unknown } | undefined
@@ -158,6 +181,8 @@ export function normalizeTelemetry(payload: TelemetryInput):
     ok: true,
     value: {
       deviceId,
+      ...(temperatureAlarm ? { temperatureAlarm } : {}),
+      ...(payload.firmwareVersion === undefined ? {} : { firmwareVersion: payload.firmwareVersion as string }),
       ...(control ? { control: control as NonNullable<TelemetrySample['control']> } : {}),
       temperatureC: payload.temperatureC,
       ...(payload.rawTemperatureC === undefined ? {} : { rawTemperatureC: payload.rawTemperatureC }),

@@ -19,16 +19,16 @@ struct Payload { bool empty = true; bool isEmpty() const { return empty; } void 
 u32 clockMs, nextOtaCheckAt, nextRetryAt, nextReportAt, retryDelayMs;
 const u32 kOtaCheckIntervalMs=900000, kInitialRetryDelayMs=2000, kLevelSamplesPerBurst=5;
 u32 levelDistanceMm, levelRawMm[5], otaDelay, retryDelay, pingDelay, postDelay;
-u32 reads[10]; int count;
+u32 reads[10]; int count, cachedRetryPosts=0;
 unsigned long millis() { return clockMs; }
 void ensureWiFi() {} void updateFlow() {} void enforcePumpFailSafe() {}
 bool hasValidOtaTime() { return true; }
 void checkForOtaUpdate() { clockMs += otaDelay; otaDelay=0; }
-bool postPayload(const Payload&) { clockMs += retryDelay; retryDelay=0; return true; }
+bool postPayload(const Payload&) { ++cachedRetryPosts;clockMs += retryDelay; retryDelay=0; return true; }
 void scheduleRetry() {}
 void updateLevel(unsigned long) { clockMs += pingDelay; pingDelay=0; }
 unsigned long minimumTelemetryIntervalMs() { return 2500; }
-void reportTemperature() { reads[count++] = clockMs; clockMs += postDelay; postDelay=0; }
+void reportTemperature() { reads[count++] = clockMs; clockMs += postDelay; postDelay=0;pendingPayload.empty=true; }
 '''
 checks = r'''
 void require(bool ok, const char* message) { if (!ok) { std::fprintf(stderr, "%s\n", message); std::exit(1); } }
@@ -38,7 +38,7 @@ int main() {
   clockMs=reads[0]+2499; loop(); require(count==1, "read before interval after OTA");
   clockMs=reads[0]+2500; loop(); require(count==2, "read not due after interval");
   count=0; clockMs=20000; nextReportAt=20000; nextOtaCheckAt=100000; pendingPayload.empty=false; nextRetryAt=20000; retryDelay=6000;
-  loop(); loop(); require(count==1, "retry caused consecutive sensor reads");
+  loop(); loop(); require(count==1, "retry caused consecutive sensor reads");require(cachedRetryPosts==0,"retry replayed a cached alarm as fresh telemetry");
   count=0; clockMs=40000; nextReportAt=40000; pingDelay=6000; loop(); loop(); require(count==1, "level ping caused consecutive sensor reads");
   count=0; clockMs=60000; nextReportAt=60000; postDelay=6000; loop(); loop(); require(count==1, "POST caused consecutive sensor reads");
   count=0; clockMs=0xfffffff0u; nextReportAt=clockMs; nextOtaCheckAt=clockMs+10000u; loop(); require(count==1, "rollover initial read missing");

@@ -23,6 +23,7 @@
 #include "ota_update.h"
 #include "sensor_readings.h"
 #include "telemetry_contract.h"
+#include "temperature_alarm.h"
 
 namespace {
 constexpr uint8_t kThermocoupleOneSckPin = 32;
@@ -148,6 +149,14 @@ bool serialDiagnostics = false;
 bool localDiagnosticsOnly = false;
 bool forceConfigPortal = false;
 uint32_t lastTemperatureReadMs = 0;
+struct TemperatureSnapshot {
+  uint16_t rawOne=0, rawTwo=0;
+  float rawOneC=NAN, rawTwoC=NAN, oneC=NAN, twoC=NAN;
+  uint32_t calibrationRevision=0;
+  uint32_t sampledAt=0;
+  bool acquired=false;
+} temperature;
+TemperatureAlarm temperatureAlarm;
 
 uint16_t readHardwareDiagnostic(SPIClass &spi, const Max6675Pins &pins) {
   spi.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
@@ -160,13 +169,16 @@ uint16_t readHardwareDiagnostic(SPIClass &spi, const Max6675Pins &pins) {
 }
 
 void printTemperatureDiagnostics(uint16_t a, uint16_t b) {
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  const CalibrationCommand diagnosticCalibration = calibration;
+  xSemaphoreGive(controlMutex);
   Serial.printf("READER=%s ", diagnosticHardwareSpi ? "hardware" : "software");
   const auto one = decodeMax6675Frame(a);
   const auto two = decodeMax6675Frame(b);
   Serial.printf("RAW_TEMP ms=%lu hex1=0x%04X hex2=0x%04X status1=%u status2=%u rawC1=%.2f rawC2=%.2f correctedC1=%.2f correctedC2=%.2f calibrationRevision=%lu\n",
     millis(), a, b, one.status, two.status, one.celsius, two.celsius,
-    applyTemperatureCalibration(one.celsius, calibration.sensorOne),
-    applyTemperatureCalibration(two.celsius, calibration.sensorTwo), (unsigned long)calibration.revision);
+    applyTemperatureCalibration(one.celsius, diagnosticCalibration.sensorOne),
+    applyTemperatureCalibration(two.celsius, diagnosticCalibration.sensorTwo), (unsigned long)diagnosticCalibration.revision);
 }
 
 
@@ -310,14 +322,21 @@ void applyCalibrationCommand(const String &body) {
   if (deserializeJson(document, body)) return;
   const JsonVariantConst source = document["commands"]["calibration"];
   const uint32_t revision = source["revision"] | 0U;
-  if (!calibrationRevisionIsNewer(calibration.revision, revision)) return;
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  const CalibrationCommand currentCalibration = calibration;
+  xSemaphoreGive(controlMutex);
+  if (!calibrationRevisionIsNewer(currentCalibration.revision, revision)) return;
 
-  CalibrationCommand candidate = calibration;
+  CalibrationCommand candidate = currentCalibration;
   candidate.revision = revision;
   if (!readSensorCalibration(source["sensors"]["max6675-1"], candidate.sensorOne) ||
       !readSensorCalibration(source["sensors"]["max6675-2"], candidate.sensorTwo)) return;
   candidate.valid = true;
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
   calibration = candidate;
+  temperature = TemperatureSnapshot{};
+  temperatureAlarm.reset(); // never combine evidence across calibration revisions
+  xSemaphoreGive(controlMutex);
   if (!saveConfig()) Serial.println("Could not persist MAX6675 calibration.");
 }
 
@@ -588,10 +607,34 @@ void updateLevel(unsigned long now) {
   }
 }
 
+void updateTemperature() {
+  const uint32_t now = millis();
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  temperatureAlarm.tick(now);
+  xSemaphoreGive(controlMutex);
+  if (uint32_t(now-lastTemperatureReadMs) < kTemperatureSampleIntervalMs) return;
+  const uint16_t a = diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiOne,kThermocoupleOnePins) : readMax6675Frame(kThermocoupleOnePins);
+  const uint16_t b = diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiTwo,kThermocoupleTwoPins) : readMax6675Frame(kThermocoupleTwoPins);
+  lastTemperatureReadMs = millis(); // conversion starts on CS rising, never schedule from before the read
+  const auto one=decodeMax6675Frame(a), two=decodeMax6675Frame(b);
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  temperature.rawOne=a; temperature.rawTwo=b;
+  temperature.sampledAt=lastTemperatureReadMs; temperature.acquired=true;
+  temperature.rawOneC=one.status==kMax6675StatusOk ? one.celsius : NAN;
+  temperature.rawTwoC=two.status==kMax6675StatusOk ? two.celsius : NAN;
+  temperature.oneC=applyTemperatureCalibration(temperature.rawOneC,calibration.sensorOne);
+  temperature.twoC=applyTemperatureCalibration(temperature.rawTwoC,calibration.sensorTwo);
+  temperature.calibrationRevision=calibration.revision;
+  temperatureAlarm.sample(lastTemperatureReadMs,temperature.oneC,temperature.twoC);
+  xSemaphoreGive(controlMutex);
+  if(serialDiagnostics) printTemperatureDiagnostics(a,b);
+}
+
 void controlCycle() {
   xSemaphoreTake(controlMutex, portMAX_DELAY);
   enforcePumpFailSafe();
   xSemaphoreGive(controlMutex);
+  updateTemperature();
   updateLevel(millis());
 }
 
@@ -624,11 +667,12 @@ void reportTemperature() {
   const bool automatic=pumpControl.fill.enabled;
   const std::string commandSession=pumpControl.session;
   const uint32_t commandRevision=pumpControl.revision;
+  temperatureAlarm.tick(millis());
+  const TemperatureSnapshot snapshotTemperature = temperature;
+  const TemperatureAlarm snapshotAlarm = temperatureAlarm;
   xSemaphoreGive(controlMutex);
-  const uint16_t rawOne = readMax6675Frame(kThermocoupleOnePins);
-  const uint16_t rawTwo = readMax6675Frame(kThermocoupleTwoPins);
-  lastTemperatureReadMs = millis();
-  if (serialDiagnostics) printTemperatureDiagnostics(rawOne, rawTwo);
+  const uint16_t rawOne = snapshotTemperature.rawOne;
+  const uint16_t rawTwo = snapshotTemperature.rawTwo;
   const Max6675Reading sensorOne = decodeMax6675Frame(rawOne);
   const Max6675Reading sensorTwo = decodeMax6675Frame(rawTwo);
   const uint8_t sensorOneStatus = sensorOne.status;
@@ -644,24 +688,29 @@ void reportTemperature() {
   }
   // Never substitute a numeric sentinel or a previous/other channel's value.
   // NAN is internal only: the JSON contract serializes it as explicit null.
-  const float thermocoupleOneC = sensorOneStatus == kMax6675StatusOk ? sensorOne.celsius : NAN;
-  const float thermocoupleTwoC = sensorTwoStatus == kMax6675StatusOk ? sensorTwo.celsius : NAN;
+  const bool temperatureFresh = snapshotTemperature.acquired && uint32_t(millis()-snapshotTemperature.sampledAt)<=kTemperatureStaleMs;
+  const float thermocoupleOneC = temperatureFresh ? snapshotTemperature.rawOneC : NAN;
+  const float thermocoupleTwoC = temperatureFresh ? snapshotTemperature.rawTwoC : NAN;
   const bool levelAvailable = isValidLevelDistanceMm(snapshotDistanceMm);
   if (!levelAvailable) {
     Serial.println("AJ-SR04M unavailable; publishing telemetry without level.");
   }
   pendingPayload = buildFullTelemetryPayload(std::string(config.deviceId.c_str()),
-                                             applyTemperatureCalibration(thermocoupleOneC, calibration.sensorOne),
-                                             applyTemperatureCalibration(thermocoupleTwoC, calibration.sensorTwo),
+                                             temperatureFresh ? snapshotTemperature.oneC : NAN,
+                                             temperatureFresh ? snapshotTemperature.twoC : NAN,
                                              levelAvailable ? snapshotDistanceMm : 0, flowLpm,
                                              calibratedFlowTotalLiters(), snapshotPump1,
                                              snapshotPump2, thermocoupleOneC, thermocoupleTwoC,
-                                             calibration.revision).c_str();
+                                             snapshotTemperature.calibrationRevision).c_str();
   pendingPayload.remove(pendingPayload.length() - 1);
   pendingPayload += diagnostics + "}";
   addRawFlowCountersToPayload();
   JsonDocument payloadDocument;
   deserializeJson(payloadDocument, pendingPayload);
+  payloadDocument["firmwareVersion"] = THERMOMOLD_FIRMWARE_VERSION;
+  payloadDocument["temperatureAlarm"]["state"] = snapshotAlarm.state;
+  if (std::isfinite(snapshotAlarm.deltaC)) payloadDocument["temperatureAlarm"]["deltaC"] = snapshotAlarm.deltaC;
+  else payloadDocument["temperatureAlarm"]["deltaC"] = nullptr;
   payloadDocument["control"]["deviceSession"] = flowCounterEpoch;
   payloadDocument["control"]["mode"] = automatic ? "automatic" : "manual";
   payloadDocument["control"]["session"] = commandSession;
@@ -741,12 +790,7 @@ void loop() {
   }
   if (localDiagnosticsOnly) {
     updateFlow();
-    if (millis()-lastTemperatureReadMs >= 500) {
-      const uint16_t a=diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiOne,kThermocoupleOnePins) : readMax6675Frame(kThermocoupleOnePins);
-      const uint16_t b=diagnosticHardwareSpi ? readHardwareDiagnostic(diagnosticSpiTwo,kThermocoupleTwoPins) : readMax6675Frame(kThermocoupleTwoPins);
-      lastTemperatureReadMs=millis();
-      if (serialDiagnostics) printTemperatureDiagnostics(a,b);
-    }
+    updateTemperature();
     delay(1);
     return;
   }
@@ -762,18 +806,14 @@ void loop() {
   }
   if (!pendingPayload.isEmpty() &&
       static_cast<int32_t>(static_cast<uint32_t>(millis() - nextRetryAt)) >= 0) {
-    if (postPayload(pendingPayload)) {
-      pendingPayload = "";
-      retryDelayMs = kInitialRetryDelayMs;
-    } else {
-      scheduleRetry();
-    }
+    // Rebuild from the local snapshot: never replay an old alarm as a fresh sample.
+    reportTemperature();
+    nextReportAt = millis() + minimumTelemetryIntervalMs();
   }
   if (pendingPayload.isEmpty() &&
       static_cast<int32_t>(static_cast<uint32_t>(millis() - nextReportAt)) >= 0) {
     reportTemperature();
-    // The POST inside reportTemperature can block: start the next interval only
-    // after it returns, so the MAX6675 conversion is never interrupted early.
+    // POST may block; acquisition continues independently in the control task.
     nextReportAt = millis() + minimumTelemetryIntervalMs();
   }
 }

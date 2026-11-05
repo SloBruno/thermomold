@@ -78,7 +78,13 @@ export interface MultiSensorReadings {
   flow?: FlowReading;
 }
 export interface FillingFeedback { deviceSession: string; mode: 'manual' | 'automatic'; session: string; revision: number }
+export interface TemperatureAlarmFeedback {
+  state: 'unknown' | 'normal' | 'pending' | 'warning' | 'severe';
+  deltaC: number | null;
+}
 export interface TelemetrySample {
+  temperatureAlarm?: TemperatureAlarmFeedback;
+  firmwareVersion?: string;
   control?: FillingFeedback;
   deviceId: string;
   temperatureC: TemperatureC;

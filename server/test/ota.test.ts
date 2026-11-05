@@ -3,6 +3,10 @@ import { once } from 'node:events'
 import { createServer } from 'node:net'
 import { spawn, type ChildProcess } from 'node:child_process'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+const manifest = JSON.parse(readFileSync(new URL('../public/ota/manifest.json', import.meta.url), 'utf8'))
+const binaryHash = createHash('sha256').update(readFileSync(new URL('../public/ota/thermomold.bin', import.meta.url))).digest('hex')
 
 async function findAvailablePort(): Promise<number> {
   const probe = createServer()
@@ -69,11 +73,8 @@ test('OTA manifest requires the configured device key', async t => {
 
   const authorized = await fetch(url, { headers: { 'X-Device-Key': 'test-device-key' } })
   assert.equal(authorized.status, 200)
-  assert.deepEqual(await authorized.json(), {
-    version: '0.1.14',
-    url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: '4d3821def0f6b6c75b6a3341a82746f769eeb05d5348ed8ba39fdf098e64279f',
-  })
+  assert.deepEqual(await authorized.json(), manifest)
+  assert.equal(manifest.sha256, binaryHash)
 })
 
 test('serves OTA public files under the /ota path', async t => {
@@ -83,9 +84,6 @@ test('serves OTA public files under the /ota path', async t => {
 
   const response = await fetch(`http://127.0.0.1:${port}/ota/manifest.json`)
   assert.equal(response.status, 200)
-  assert.deepEqual(await response.json(), {
-    version: '0.1.14',
-    url: 'https://thermomold.onrender.com/ota/thermomold.bin',
-    sha256: '4d3821def0f6b6c75b6a3341a82746f769eeb05d5348ed8ba39fdf098e64279f',
-  })
+  assert.deepEqual(await response.json(), manifest)
+  assert.equal(manifest.sha256, binaryHash)
 })

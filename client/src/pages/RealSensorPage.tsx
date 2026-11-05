@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import socket from '../lib/socket'
+import TemperatureAlarm from '../components/TemperatureAlarm'
 import FlowCalibrationPanel from '../components/FlowCalibrationPanel'
 import { tankLevelPercent, TANK_EMPTY_MM, TANK_FULL_MM } from '../lib/tank-level'
 
@@ -114,6 +115,7 @@ export default function RealSensorPage() {
           Status da conexão: {statusLabel}
         </div>
 
+        <TemperatureAlarm telemetry={error ? null : telemetry} />
         <FlowCalibrationPanel />
 
         {!error && max6675Warnings.length > 0 && (

@@ -4,7 +4,7 @@ import os, subprocess, tempfile
 root=Path(__file__).resolve().parents[1]
 s=(root/'src/main.cpp').read_text()
 assert 'void controlCycle()' in s, 'missing independent local control cycle'
-section=s[s.index('void updateLevel('):s.index('double calibratedFlowTotalLiters()')]
+section=s[s.index('void updateLevel('):s.index('void updateTemperature()')] + s[s.index('void controlCycle()'):s.index('double calibratedFlowTotalLiters()')]
 prefix=r'''
 #include <cstdint>
 #include <cstdlib>
@@ -25,6 +25,7 @@ struct Wifi {int status(){return 1;}} WiFi;
 bool pump1On=false,pump2On=false;
 void applyPumps(bool a,bool b){pump1On=a;pump2On=b;}
 void enforcePumpFailSafe(){pumpControl.safety(millis(),WiFi.status()==WL_CONNECTED);applyPumps(pumpControl.pump1,pumpControl.pump2);}
+void updateTemperature() {} // acquisition exercised in test_temperature_acquisition.py
 void vTaskDelay(int){} int pdMS_TO_TICKS(int x){return x;}
 '''
 checks=r'''
