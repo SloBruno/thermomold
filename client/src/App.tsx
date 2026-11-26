@@ -5,6 +5,7 @@ import MoldParametersPage from './pages/MoldParametersPage'
 import RealSensorPage from './pages/RealSensorPage'
 import PumpControlPage from './pages/PumpControlPage'
 import CalibrationPage from './pages/CalibrationPage'
+import SupervisoryPage from './pages/SupervisoryPage'
 
 function App() {
   const Router = import.meta.env.VITE_ROUTER_MODE === 'hash' ? HashRouter : BrowserRouter
@@ -12,9 +13,10 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-neutral-900">
-        <nav className="bg-neutral-800 border-b border-neutral-700 px-6 py-3 flex items-center gap-6">
+        <nav className="bg-neutral-800 border-b border-neutral-700 px-6 py-3 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-bold text-white">ThermoMold</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <NavLink to="/" end className={({isActive}) => `px-4 py-1.5 rounded text-sm font-medium ${isActive ? 'bg-white text-neutral-900' : 'bg-neutral-700 text-neutral-300'}`}>Supervisório</NavLink>
             <NavLink
               to="/simple-simulator"
               className={({ isActive }) =>
@@ -85,6 +87,7 @@ function App() {
         </nav>
         <main>
           <Routes>
+            <Route path="/" element={<SupervisoryPage />} />
             <Route path="/simple-simulator" element={<SimpleSimulatorPage />} />
             <Route path="/simple-dashboard" element={<SimpleDashboardPage />} />
             <Route path="/mold-parameters" element={<MoldParametersPage />} />
