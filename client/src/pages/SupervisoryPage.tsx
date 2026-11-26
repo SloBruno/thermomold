@@ -3,6 +3,7 @@ import type { TelemetryStatus } from '../../../shared/types'
 import socket from '../lib/socket'
 import { tankLevelPercent } from '../lib/tank-level'
 import TemperatureAlarm from '../components/TemperatureAlarm'
+import esquemaThermomold from '../assets/esquema-thermomold.jpeg'
 import './supervisory.css'
 
 type Pumps = { pump1: boolean; pump2: boolean }
@@ -63,6 +64,7 @@ export default function SupervisoryPage() {
     {error && <p className="super-error" role="alert">{error}</p>}
     <div className="super-layout"><section className="circuit" aria-label="Circuito de circulação">
       <div className="section-heading"><div><h3>Circuito de circulação</h3><p>Esquema de referência · leituras reais</p></div><span>{online && sample?.observedAt && Number.isFinite(Date.parse(sample.observedAt)) ? `Leitura: ${new Date(sample.observedAt).toLocaleTimeString('pt-BR')}` : 'Sem leitura recente'}</span></div>
+      <figure className="process-schematic"><img src={esquemaThermomold} alt="Esquema original do circuito ThermoMold" /><figcaption>Esquema original do projeto · leituras atualizadas abaixo</figcaption></figure>
       <div className="circuit-path"><div className="circuit-node machine"><span>Máquina</span><strong>CNC</strong><small>Usinagem</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node"><span>Circulação</span><strong>B1 / B2</strong><small>Bombas</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node"><span>Sensor de vazão</span><strong>{reading(flow,'L/min')}</strong><small>Vazão medida</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node tank"><span>Bancada de medição</span><strong>{finite(level) ? `${level.toFixed(0)} %` : 'Indisponível'}</strong><small>Nível do tanque</small>{finite(level) && <progress aria-label="Nível do tanque" max="100" value={level} />}</div></div>
       <div className="return-line"><span>Retorno da bancada para CNC</span><span>Válvula manual (referência)</span></div>
       <div className="measurements"><div><span>Termopar 1 · calibrado</span><strong>{reading(t1,'°C')}</strong></div><div><span>Termopar 2 · calibrado</span><strong>{reading(t2,'°C')}</strong></div><div><span>Diferença |T1 − T2|</span><strong>{reading(finite(t1) && finite(t2) ? Math.abs(t1-t2) : undefined,'°C')}</strong></div></div>

@@ -9,6 +9,7 @@ test('offline shows unavailable readings and prevents starting pumps', async()=>
   vi.stubGlobal('fetch',vi.fn(async (url:string)=>({ok:true,json:async()=>url.endsWith('/api/telemetry')?{status:'offline',stale:true,sample:null}:url.endsWith('/api/pumps')?{pump1:false,pump2:false}:{mode:'manual',session:'s',revision:1,deviceSession:''}})))
   render(<SupervisoryPage />)
   await screen.findByText('Offline')
+  expect(screen.getByRole('img', {name: 'Esquema original do circuito ThermoMold'}).getAttribute('src')).toContain('esquema-thermomold')
   expect(screen.getAllByText('Indisponível').length).toBeGreaterThan(0)
   await waitFor(()=>expect((screen.getByRole('button',{name:'Ligar B1'}) as HTMLButtonElement).disabled).toBe(true))
   expect((screen.getByRole('button',{name:'Manual / Parar tudo'}) as HTMLButtonElement).disabled).toBe(false)
