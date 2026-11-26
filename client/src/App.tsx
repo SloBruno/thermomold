@@ -17,72 +17,16 @@ function App() {
           <h1 className="text-xl font-bold text-white">ThermoMold</h1>
           <div className="flex flex-wrap gap-2">
             <NavLink to="/" end className={({isActive}) => `px-4 py-1.5 rounded text-sm font-medium ${isActive ? 'bg-white text-neutral-900' : 'bg-neutral-700 text-neutral-300'}`}>Supervisório</NavLink>
-            <NavLink
-              to="/simple-simulator"
-              className={({ isActive }) =>
-                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-white text-neutral-900'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`
-              }
-            >
-              Simulador
-            </NavLink>
-            <NavLink
-              to="/simple-dashboard"
-              className={({ isActive }) =>
-                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-white text-neutral-900'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`
-              }
-            >
-              Dashboard
-            </NavLink>
-            <NavLink
-              to="/mold-parameters"
-              className={({ isActive }) =>
-                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-white text-neutral-900'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`
-              }
-            >
-              Configuração Molde
-            </NavLink>
-            <NavLink
-              to="/sensor-real"
-              className={({ isActive }) =>
-                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-white text-neutral-900'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`
-              }
-            >
-              Sensor Real
-            </NavLink>
-            <NavLink
-              to="/bombas"
-              className={({ isActive }) =>
-                `px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-white text-neutral-900'
-                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                }`
-              }
-            >
-              Bombas
-            </NavLink>
-            <NavLink
-              to="/calibracao"
-              className={({ isActive }) => `px-4 py-1.5 rounded text-sm font-medium transition-colors ${isActive ? 'bg-white text-neutral-900' : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'}`}
-            >
-              Calibração
-            </NavLink>
+            <details className="relative">
+              <summary className="cursor-pointer px-4 py-1.5 rounded text-sm font-medium bg-neutral-700 text-neutral-300">Mais</summary>
+              <div className="absolute z-10 right-0 mt-2 w-48 rounded bg-neutral-800 border border-neutral-600 p-2 flex flex-col gap-1">
+                {[
+                  ['/simple-simulator', 'Simulador'], ['/simple-dashboard', 'Dashboard'],
+                  ['/mold-parameters', 'Configuração Molde'], ['/sensor-real', 'Sensor Real'],
+                  ['/bombas', 'Bombas'], ['/calibracao', 'Calibração'],
+                ].map(([to, label]) => <NavLink key={to} to={to} className="px-3 py-2 rounded text-sm text-neutral-200 hover:bg-neutral-700">{label}</NavLink>)}
+              </div>
+            </details>
           </div>
         </nav>
         <main>

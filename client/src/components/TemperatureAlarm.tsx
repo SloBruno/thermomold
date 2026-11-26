@@ -40,7 +40,7 @@ export default function TemperatureAlarm({ telemetry }: { telemetry: TelemetrySt
   }
   return <section aria-label="Alarme dos termopares reais" role="alert" className={`rounded-xl border-2 p-4 space-y-2 ${color}`}>
     <h3 className="font-bold">Termopares reais — {label}</h3>
-    <p>ΔT = |T1 − T2| calibradas: {state==='unknown'?'—':`${alarm?.deltaC?.toFixed(2)} °C`}</p>
+    <p>ΔT do alarme: {state==='unknown'?'—':`${alarm?.deltaC?.toFixed(2)} °C`}</p>
     <p className="text-sm">Decisão no ESP32; entrega pelo próximo envio de telemetria. Não controla bombas.</p>
     <div className="flex gap-3 items-center text-sm">
       {sound!=='on' && <button type="button" className="rounded border px-3 py-1" onClick={()=>void enable()}>Ativar som</button>}

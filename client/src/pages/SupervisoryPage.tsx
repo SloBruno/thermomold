@@ -60,17 +60,19 @@ export default function SupervisoryPage() {
   const manual = online && control?.mode === 'manual' && sample?.control?.mode === 'manual'
   const canAuto = online && !!control?.deviceSession && !!sample?.control && control.mode === 'manual'
   return <div className="supervisory">
-    <header className="super-header"><div><p className="super-kicker">ThermoMold / operação</p><h2>Supervisório</h2><p>Circulação e medição da bancada</p></div><div className={`connection ${online?'online':'offline'}`}><span />{status}</div></header>
+    <header className="super-header"><h2>Supervisório</h2><div className={`connection ${online?'online':'offline'}`}><span />{status}</div></header>
     {error && <p className="super-error" role="alert">{error}</p>}
-    <div className="super-layout"><section className="circuit" aria-label="Circuito de circulação">
-      <div className="section-heading"><div><h3>Circuito de circulação</h3><p>Esquema de referência · leituras reais</p></div><span>{online && sample?.observedAt && Number.isFinite(Date.parse(sample.observedAt)) ? `Leitura: ${new Date(sample.observedAt).toLocaleTimeString('pt-BR')}` : 'Sem leitura recente'}</span></div>
-      <figure className="process-schematic"><img src={esquemaThermomold} alt="Esquema original do circuito ThermoMold" /><figcaption>Esquema original do projeto · leituras atualizadas abaixo</figcaption></figure>
-      <div className="circuit-path"><div className="circuit-node machine"><span>Máquina</span><strong>CNC</strong><small>Usinagem</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node"><span>Circulação</span><strong>B1 / B2</strong><small>Bombas</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node"><span>Sensor de vazão</span><strong>{reading(flow,'L/min')}</strong><small>Vazão medida</small></div><div className="pipe" aria-hidden="true" /><div className="circuit-node tank"><span>Bancada de medição</span><strong>{finite(level) ? `${level.toFixed(0)} %` : 'Indisponível'}</strong><small>Nível do tanque</small>{finite(level) && <progress aria-label="Nível do tanque" max="100" value={level} />}</div></div>
-      <div className="return-line"><span>Retorno da bancada para CNC</span><span>Válvula manual (referência)</span></div>
-      <div className="measurements"><div><span>Termopar 1 · calibrado</span><strong>{reading(t1,'°C')}</strong></div><div><span>Termopar 2 · calibrado</span><strong>{reading(t2,'°C')}</strong></div><div><span>Diferença |T1 − T2|</span><strong>{reading(finite(t1) && finite(t2) ? Math.abs(t1-t2) : undefined,'°C')}</strong></div></div>
-    </section><aside className="controls"><h3>Controle das bombas</h3><p>Solicitado: {control ? control.mode === 'manual' ? 'Manual' : 'Automático' : 'Indisponível'}<br />ESP32: {online && sample?.control ? sample.control.mode === 'manual' ? 'Manual' : 'Automático' : 'Não confirmado'}</p><div className="mode-buttons"><button onClick={()=>void send('/api/filling',{mode:'manual'})}>Manual / Parar tudo</button><button disabled={pending || !canAuto} onClick={()=>void send('/api/filling',{mode:'automatic',session:control?.session,revision:control?.revision})}>Automático</button></div><p className="control-note">Manual / Parar tudo desliga ambas e cancela a coleta. Automático é decidido localmente no ESP32.</p>
+    <div className="super-alarm"><TemperatureAlarm telemetry={online ? telemetry : null} /></div>
+    <div className="super-layout"><section className="circuit" aria-label="Processo e leituras">
+      <figure className="process-schematic"><img src={esquemaThermomold} alt="Esquema original do circuito ThermoMold" /></figure>
+      <div className="measurements">
+        <div><span>T1</span><strong>{reading(t1,'°C')}</strong></div><div><span>T2</span><strong>{reading(t2,'°C')}</strong></div>
+        <div><span>ΔT</span><strong>{reading(finite(t1) && finite(t2) ? Math.abs(t1-t2) : undefined,'°C')}</strong></div>
+        <div><span>Nível</span><strong>{finite(level) ? `${level.toFixed(0)} %` : 'Indisponível'}</strong></div><div><span>Vazão</span><strong>{reading(flow,'L/min')}</strong></div>
+      </div>
+    </section><aside className="controls"><h3>Controle das bombas</h3><p>Solicitado: {control ? control.mode === 'manual' ? 'Manual' : 'Automático' : 'Indisponível'}<br />ESP32: {online && sample?.control ? sample.control.mode === 'manual' ? 'Manual' : 'Automático' : 'Não confirmado'}</p><div className="mode-buttons"><button onClick={()=>void send('/api/filling',{mode:'manual'})}>Manual / Parar tudo</button><button disabled={pending || !canAuto} onClick={()=>void send('/api/filling',{mode:'automatic',session:control?.session,revision:control?.revision})}>Automático</button></div>
       {(['pump1','pump2'] as const).map((id,i)=><div className="pump-row" key={id}><h4>Bomba {i+1}</h4><div className="pump-states"><span>Comando <b>{state(pumps?.[id])}</b></span><span>Relatado pelo ESP32 <b>{state(actual?.[id])}</b></span></div><div className="pump-buttons"><button disabled={pending || !manual || !pumps || pumps[id]} onClick={()=>void send('/api/pumps',{[id]:true})}>Ligar B{i+1}</button><button disabled={pending} onClick={()=>void send('/api/pumps',{[id]:false})}>Desligar B{i+1}</button></div></div>)}
       <p className="control-note">Estado relatado pelo controlador; não confirma funcionamento físico. O watchdog desliga as bombas em caso de perda de comunicação.</p>
-    </aside></div><div className="super-alarm"><TemperatureAlarm telemetry={online ? telemetry : null} /></div>
+    </aside></div>
   </div>
 }
