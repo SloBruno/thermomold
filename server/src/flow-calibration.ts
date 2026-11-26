@@ -40,12 +40,13 @@ export function createFlowCalibration(pumps: ReturnType<typeof createPumpStore>,
     if (pumps.get().pump1 || pumps.get().pump2 || !latest.pumps || latest.pumps.pump1 || latest.pumps.pump2) {
       throw new Error('Desligue ambas as bombas e aguarde a telemetria antes de iniciar.')
     }
+    const enabled = pumps.set({ pump1: true, pump2: true })
+    if (!enabled.ok) throw new Error(enabled.error)
     baseline = latest
     previous = latest
     state = { id: randomUUID(), phase: 'collecting', referenceMl, startedAt: now(), sampleCount: 0,
       baselineObservedAt: latest.observedAt, source: latest.sensors.flow.rawTotalPulses === undefined ? 'filtered-total' : 'raw-pulses', applied: false }
     leaseUntil = now() + FLOW_LEASE_MS
-    pumps.set({ pump1: true, pump2: true })
     return get()
   }
   function heartbeat(id: unknown) {

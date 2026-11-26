@@ -550,10 +550,12 @@ app.post('/api/telemetry', (req, res) => {
 
   const sample = telemetryStore.save(normalized.value);
   if (sample.control) {
-    pumpStore.register(sample.control.deviceSession);
+    const currentBoot = pumpStore.register(sample.control.deviceSession);
+    if (currentBoot && sample.control.tripGeneration !== undefined) pumpStore.acknowledgeTrip(sample.control.deviceSession, sample.control.tripGeneration);
+    if (currentBoot) pumpStore.observeBaseline(sample.control.deviceSession, sample.control, sample.pumps);
     const desired = pumpStore.control();
     // A local watchdog/stop is latched: never keep offering a spent enable revision.
-    if (desired.mode === 'automatic' && sample.control.mode === 'manual'
+    if (currentBoot && desired.mode === 'automatic' && sample.control.mode === 'manual'
       && sample.control.session === desired.session && sample.control.revision === desired.revision) {
       pumpStore.setMode({ mode: 'manual' });
     }
@@ -565,7 +567,7 @@ app.post('/api/telemetry', (req, res) => {
   res.status(202).json({
     accepted: true,
     sample,
-    commands: { pumps: sample.control ? pumpStore.control() : pumpStore.get(), calibration: calibrationStore.get() },
+    commands: { pumps: sample.control ? { ...pumpStore.control(), ...(sample.control.tripGeneration !== undefined ? { tripAck: pumpStore.tripAck() } : {}), ...(sample.control.requestNonce ? { requestNonce: sample.control.requestNonce } : {}) } : pumpStore.get(), calibration: calibrationStore.get() },
   });
 });
 

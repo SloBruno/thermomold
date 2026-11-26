@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createFlowCalibration } from '../src/flow-calibration.ts'
 import { createPumpStore } from '../src/pumps.ts'
+
+function confirm(p: ReturnType<typeof createPumpStore>, boot = 'boot') {
+  p.register(boot); const c = p.control(); p.observeBaseline(boot, { ...c, tripGeneration: p.tripAck() }, { pump1: false, pump2: false })
+}
 import type { TelemetrySample } from '../src/telemetry.ts'
 
 export function sample(at: number, pulses = 100, extra = {}): TelemetrySample {
@@ -16,7 +20,7 @@ export function sample(at: number, pulses = 100, extra = {}): TelemetrySample {
 
 test('start commands both pumps; stop waits for a fresh OFF sample and only proposes a factor', () => {
   let now = 10000
-  const pumps = createPumpStore()
+  const pumps = createPumpStore(); confirm(pumps)
   const run = createFlowCalibration(pumps, () => now)
   run.observe(sample(now))
   const started = run.start(500)
@@ -43,7 +47,7 @@ test('start commands both pumps; stop waits for a fresh OFF sample and only prop
 for (const fault of ['lease', 'telemetry', 'reset', 'backwards', 'missing', 'zero', 'zero-time', 'device', 'order', 'maximum']) {
   test(`fails safe and never proposes calibration on ${fault}`, () => {
     let now = 10000
-    const pumps = createPumpStore()
+    const pumps = createPumpStore(); confirm(pumps)
     const run = createFlowCalibration(pumps, () => now)
     run.observe(sample(now))
     const started = run.start(500)
@@ -73,7 +77,7 @@ for (const fault of ['lease', 'telemetry', 'reset', 'backwards', 'missing', 'zer
 
 test('legacy filtered total is informational and never reconstructed into pulses or calibration', () => {
   let now = 10000
-  const run = createFlowCalibration(createPumpStore(), () => now)
+  const run = createFlowCalibration((() => { const p = createPumpStore(); confirm(p); return p })(), () => now)
   const fields = { rawTotalPulses: undefined, counterEpoch: undefined, pulsesPerLiter: undefined }
   run.observe(sample(now, 100, fields))
   run.start(500)
@@ -87,7 +91,7 @@ test('legacy filtered total is informational and never reconstructed into pulses
 
 test('invalid references, stale samples, existing pump commands and parallel sessions are rejected', () => {
   let now = 10000
-  const pumps = createPumpStore()
+  const pumps = createPumpStore(); confirm(pumps)
   const run = createFlowCalibration(pumps, () => now)
   for (const ref of [0, -1, NaN, Infinity, '500', 1000001]) assert.throws(() => run.start(ref))
   assert.throws(() => run.start(500))

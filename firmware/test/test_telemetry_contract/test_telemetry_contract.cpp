@@ -60,8 +60,8 @@ void test_default_endpoint_targets_the_public_thermomold_backend() {
                            defaultTelemetryEndpoint().c_str());
 }
 
-void test_minimum_telemetry_interval_is_2_5_seconds() {
-  TEST_ASSERT_EQUAL_UINT32(2500, minimumTelemetryIntervalMs());
+void test_minimum_telemetry_interval_is_1_second() {
+  TEST_ASSERT_EQUAL_UINT32(1000, minimumTelemetryIntervalMs());
 }
 
 void test_flow_converts_pulses_in_a_window_to_liters_per_minute() {
@@ -167,7 +167,7 @@ int main(int, char **) {
   RUN_TEST(test_ultrasonic_echo_conversion_rejects_timeouts);
   RUN_TEST(test_secure_endpoint_detection_accepts_only_https_scheme);
   RUN_TEST(test_default_endpoint_targets_the_public_thermomold_backend);
-  RUN_TEST(test_minimum_telemetry_interval_is_2_5_seconds);
+  RUN_TEST(test_minimum_telemetry_interval_is_1_second);
   RUN_TEST(test_flow_converts_pulses_in_a_window_to_liters_per_minute);
   RUN_TEST(test_flow_pulses_accumulate_to_liters);
   RUN_TEST(test_pump_command_expires_after_timeout_including_millis_rollover);

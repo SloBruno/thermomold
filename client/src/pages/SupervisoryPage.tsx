@@ -62,6 +62,7 @@ export default function SupervisoryPage() {
   return <div className="supervisory">
     <header className="super-header"><h2>Supervisório</h2><div className={`connection ${online?'online':'offline'}`}><span />{status}</div></header>
     {error && <p className="super-error" role="alert">{error}</p>}
+    {online && sample?.control?.tripGeneration === undefined && <p className="super-error" role="status">Firmware incompatível ou aguardando atualização OTA: ligar bombas ficará bloqueado até firmware compatível confirmar ambas desligadas. Após a atualização, habilite intencionalmente.</p>}
     <div className="super-alarm"><TemperatureAlarm telemetry={online ? telemetry : null} /></div>
     <div className="super-layout"><section className="circuit" aria-label="Processo e leituras">
       <figure className="process-schematic"><img src={esquemaThermomold} alt="Esquema original do circuito ThermoMold" /></figure>

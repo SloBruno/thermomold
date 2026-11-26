@@ -48,3 +48,10 @@ test('stale data is not shown as current and cannot enable automatic', async()=>
   expect(screen.queryByText('42.00 °C')).toBeNull()
   expect((screen.getByRole('button',{name:'Automático'}) as HTMLButtonElement).disabled).toBe(true)
 })
+
+ test('warns when online firmware lacks trip capability', async()=>{
+  const sample={receivedAt:new Date().toISOString(),observedAt:new Date().toISOString(),control:{mode:'manual'},pumps:{pump1:false,pump2:false}}
+  vi.stubGlobal('fetch',vi.fn(async (url:string)=>({ok:true,json:async()=>url.endsWith('/api/telemetry')?{status:'online',stale:false,sample}:url.endsWith('/api/pumps')?{pump1:false,pump2:false}:{mode:'manual',session:'s',revision:1,deviceSession:'d'}})))
+  render(<SupervisoryPage />)
+  expect(await screen.findByText(/Firmware incompatível ou aguardando atualização OTA/)).toBeTruthy()
+ })

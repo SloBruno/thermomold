@@ -77,7 +77,7 @@ export interface MultiSensorReadings {
   level?: LevelReading;
   flow?: FlowReading;
 }
-export interface FillingFeedback { deviceSession: string; mode: 'manual' | 'automatic'; session: string; revision: number }
+export interface FillingFeedback { deviceSession: string; requestNonce?: string; tripGeneration?: number; mode: 'manual' | 'automatic'; session: string; revision: number }
 export interface TemperatureAlarmFeedback {
   state: 'unknown' | 'normal' | 'pending' | 'warning' | 'severe';
   deltaC: number | null;

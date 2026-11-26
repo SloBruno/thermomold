@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createPumpStore } from '../src/pumps.ts'
+
+function confirm(p: ReturnType<typeof createPumpStore>, boot = 'boot') {
+  p.register(boot); const c = p.control(); p.observeBaseline(boot, { ...c, tripGeneration: p.tripAck() }, { pump1: false, pump2: false })
+}
 import { normalizeTelemetry } from '../src/telemetry.ts'
 
 test('automatic enable requires registered device and current server revision; manual OFF cancels it', () => {
@@ -8,6 +12,7 @@ test('automatic enable requires registered device and current server revision; m
   assert.equal(p.control().mode, 'manual')
   assert.equal(p.setMode({ mode: 'automatic', session: p.control().session, revision: 0 }).ok, false)
   p.register('device-boot-1')
+  confirm(p, 'device-boot-1')
   const c = p.control()
   assert.equal(p.setMode({ mode: 'automatic', session: c.session, revision: c.revision }).ok, true)
   assert.equal(p.control().mode, 'automatic')
@@ -35,4 +40,22 @@ test('backend restart and device reboot discard authority; invalid mode/feedback
   for(const control of [null,[], {...good,revision:-1}, {...good,revision:1.5}, {...good,revision:4294967296}, {...good,mode:'AUTO'}, {...good,deviceSession:''}]) {
     assert.equal(normalizeTelemetry({deviceId:'fake',temperatureC:20,control}).ok,false)
   }
+})
+
+test('trip reconciliation is boot-bound and idempotent across stale feedback', () => {
+  const p=createPumpStore(); p.register('boot'); confirm(p);
+  p.set({pump1:true}); const on=p.control();
+  p.acknowledgeTrip('wrong-boot', 1); assert.equal(p.control().pump1,true);
+  p.acknowledgeTrip('boot',1); const off=p.control();
+  assert.equal(off.pump1,false); assert.equal(off.mode,'manual'); assert.ok(off.revision>on.revision);
+  confirm(p); p.set({pump1:true}); const fresh=p.control();
+  p.acknowledgeTrip('boot',1); p.acknowledgeTrip('boot',0);
+  assert.deepEqual(p.control(),fresh);
+})
+
+test('retired boot feedback cannot replace the current boot', () => {
+  const p=createPumpStore(); assert.equal(p.register('old'),true); assert.equal(p.register('new'),true); confirm(p, 'new');
+  p.set({pump1:true}); const before=p.control();
+  assert.equal(p.register('old'),false); p.acknowledgeTrip('old',1);
+  assert.deepEqual(p.control(),before);
 })

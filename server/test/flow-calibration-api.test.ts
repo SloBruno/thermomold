@@ -6,6 +6,10 @@ import { createFlowCalibration } from '../src/flow-calibration.ts'
 import { flowCalibrationRouter } from '../src/flow-calibration-routes.ts'
 import { createPumpStore } from '../src/pumps.ts'
 
+function confirm(p: ReturnType<typeof createPumpStore>, boot = 'boot') {
+  p.register(boot); const c = p.control(); p.observeBaseline(boot, { ...c, tripGeneration: p.tripAck() }, { pump1: false, pump2: false })
+}
+
 const telemetry = (now: number, pulses: number) => ({ deviceId: 'test', sensor: 'MAX6675' as const, temperatureC: 20,
   receivedAt: new Date(now).toISOString(), observedAt: new Date(now).toISOString(), pumps: { pump1: false, pump2: false },
   sensors: { thermocouples: [{ id: 'max6675-1' as const, temperatureC: 20 }, { id: 'max6675-2' as const, temperatureC: 20 }] as any,
@@ -13,7 +17,7 @@ const telemetry = (now: number, pulses: number) => ({ deviceId: 'test', sensor: 
 
 test('isolated HTTP start / heartbeat / stop / status / abort never contacts hardware', async t => {
   let now = 10000
-  const pumps = createPumpStore()
+  const pumps = createPumpStore(); confirm(pumps)
   const run = createFlowCalibration(pumps, () => now)
   const app = express().use(express.json()).use('/api/flow-calibration', flowCalibrationRouter(run))
   const server = app.listen(0, '127.0.0.1')

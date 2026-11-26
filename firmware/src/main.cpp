@@ -532,6 +532,23 @@ bool postPayload(const String &payload) {
     return false;
   }
 
+  static uint64_t requestSequence = 0;
+  const std::string requestNonce = std::string(flowCounterEpoch.c_str()) + ":" + std::to_string(++requestSequence);
+  JsonDocument requestDocument;
+  if (deserializeJson(requestDocument, payload)) return false;
+  xSemaphoreTake(controlMutex, portMAX_DELAY);
+  // Relay feedback and authority must be one atomic snapshot.
+  requestDocument["pumps"]["pump1"] = pump1On;
+  requestDocument["pumps"]["pump2"] = pump2On;
+  requestDocument["control"]["tripGeneration"] = pumpControl.faultGeneration;
+  requestDocument["control"]["mode"] = pumpControl.fill.enabled ? "automatic" : "manual";
+  requestDocument["control"]["session"] = pumpControl.session;
+  requestDocument["control"]["revision"] = pumpControl.revision;
+  const uint32_t requestGeneration = pumpControl.faultGeneration;
+  xSemaphoreGive(controlMutex);
+  requestDocument["control"]["requestNonce"] = requestNonce;
+  String requestPayload;
+  serializeJson(requestDocument, requestPayload);
   HTTPClient http;
   const auto postWithClient = [&](WiFiClient &client) {
     if (!http.begin(client, config.endpoint)) {
@@ -541,20 +558,24 @@ bool postPayload(const String &payload) {
     http.setTimeout(10000);
     http.addHeader("Content-Type", "application/json");
     if (!config.deviceKey.isEmpty()) http.addHeader("X-Device-Key", config.deviceKey);
-    const int status = http.POST(payload);
+    xSemaphoreTake(controlMutex, portMAX_DELAY);
+    const uint32_t sentGeneration = requestGeneration;
+    xSemaphoreGive(controlMutex);
+    const uint32_t sentAt = millis();
+    const int status = http.POST(requestPayload);
     const String body = (status >= 200 && status < 300) ? http.getString() : String();
     http.end();
     if (status < 200 || status >= 300) {
       Serial.printf("Telemetry POST failed with HTTP status %d\n", status);
       return false;
     }
-    const PumpCommand command = parsePumpCommand(std::string(body.c_str()));
-    applyCalibrationCommand(body);
     xSemaphoreTake(controlMutex, portMAX_DELAY);
-    pumpControl.command(command, std::string(flowCounterEpoch.c_str()), millis());
+    const bool accepted = applyPumpResponse(pumpControl, std::string(body.c_str()),
+        std::string(flowCounterEpoch.c_str()), requestNonce, sentAt, millis(), sentGeneration);
     enforcePumpFailSafe();
     xSemaphoreGive(controlMutex);
-    return true;
+    if (accepted) applyCalibrationCommand(body);
+    return accepted;
   };
 
   WiFiClientSecure secureClient;

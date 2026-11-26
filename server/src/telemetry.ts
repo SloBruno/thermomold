@@ -125,9 +125,11 @@ export function normalizeTelemetry(payload: TelemetryInput):
     return { ok: false, error: 'observedAt deve ser um timestamp ISO-8601 válido' }
   }
 
-  const control = payload.control as { deviceSession?: unknown; mode?: unknown; session?: unknown; revision?: unknown } | undefined
+  const control = payload.control as { deviceSession?: unknown; requestNonce?: unknown; tripGeneration?: unknown; mode?: unknown; session?: unknown; revision?: unknown } | undefined
   if (payload.control !== undefined && (!control || typeof control !== 'object' || Array.isArray(control)
     || typeof control.deviceSession !== 'string' || !/^[A-Za-z0-9._:-]{1,96}$/.test(control.deviceSession)
+    || (control.requestNonce !== undefined && (typeof control.requestNonce !== 'string' || !/^[A-Za-z0-9._:-]{1,96}$/.test(control.requestNonce)))
+    || (control.tripGeneration !== undefined && (!Number.isInteger(control.tripGeneration) || (control.tripGeneration as number) < 0 || (control.tripGeneration as number) > 0xffffffff))
     || !['manual', 'automatic'].includes(control.mode as string) || typeof control.session !== 'string'
     || !/^[A-Za-z0-9._:-]{0,96}$/.test(control.session) || !Number.isInteger(control.revision)
     || (control.revision as number) < 0 || (control.revision as number) > 0xffffffff)) return { ok: false, error: 'controle de enchimento inválido' }

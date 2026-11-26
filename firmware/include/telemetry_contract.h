@@ -63,7 +63,7 @@ inline std::string withRawFlowCounters(std::string payload, uint64_t pulses,
 inline unsigned long minimumTelemetryIntervalMs() {
   // Each report opens a fresh TLS connection; validate heap and backend load
   // at this cadence on the deployed system.
-  return 2500;
+  return 1000;
 }
 
 inline std::string defaultTelemetryEndpoint() {

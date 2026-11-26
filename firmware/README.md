@@ -66,3 +66,13 @@ For repeatable setup, copy `data/config.example.json` to `data/config.json`, fil
 Use the public web wizard at `/calibracao`. For each MAX6675, record two stable raw readings against known reference temperatures. The firmware applies the linear two-point formula and publishes both `rawTemperatureC` and corrected `temperatureC`, plus `calibrationRevision`, in every full telemetry sample.
 
 Run the host-side payload contract test with `platformio test -e native`.
+
+## 0.1.17 migration (offline release; no deployment performed)
+
+For a future rollout, stage the compatible backend **first with the existing 0.1.16 OTA files still served**, then publish this 0.1.17 manifest and binary together in a second deployment. This commit contains both, so do not deploy it unmodified as the first stage. The existing 0.1.16 device lacks trip acknowledgement fields: the new backend refuses ON until a compatible device reports the matching manual, both-OFF baseline. This is a temporary service interruption, not an automatic recovery. Legacy firmware may retain an earlier output until its existing watchdog acts; do not assume immediate physical OFF or rely solely on telemetry. Keep the ESP powered and connected for its normal device-initiated OTA pull; do not flash or power-cycle it as part of this procedure. After OTA, verify version, fresh reported OFF baseline and actual safe conditions, then an operator must intentionally re-enable. No physical behavior is verified by offline tests.
+
+OTA updates the application partition, not LittleFS or Wi-Fi settings; do not run erase or uploadfs. Preserve and independently back up configuration using an approved method before a future rollout; preservation has not been verified on hardware. Backend restarts reset ephemeral calibration workflow state: do not start a rollout during calibration, and do not change actual calibration settings or points. Verify persisted configuration and calibration after any future update.
+
+This safety protocol is not protection against malicious clients: existing control endpoints and device-ID bootstrap are not authenticated, and the ESP TLS client uses `setInsecure`. The 1-second polling increase adds server/network load and device heap pressure; offline tests cannot establish real-device timing, memory headroom, TLS reliability, or watchdog behavior.
+
+Before any future rollout, verify that the provisioned device can authenticate to the manifest endpoint: the device-ID bootstrap does not authorize OTA. A missing or mismatched device key can prevent device-pull OTA; do not assume this was verified offline.
