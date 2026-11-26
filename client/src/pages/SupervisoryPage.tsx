@@ -72,7 +72,7 @@ export default function SupervisoryPage() {
       </div>
     </section><aside className="controls"><h3>Controle das bombas</h3><p>Solicitado: {control ? control.mode === 'manual' ? 'Manual' : 'Automático' : 'Indisponível'}<br />ESP32: {online && sample?.control ? sample.control.mode === 'manual' ? 'Manual' : 'Automático' : 'Não confirmado'}</p><div className="mode-buttons"><button onClick={()=>void send('/api/filling',{mode:'manual'})}>Manual / Parar tudo</button><button disabled={pending || !canAuto} onClick={()=>void send('/api/filling',{mode:'automatic',session:control?.session,revision:control?.revision})}>Automático</button></div>
       {(['pump1','pump2'] as const).map((id,i)=><div className="pump-row" key={id}><h4>Bomba {i+1}</h4><div className="pump-states"><span>Comando <b>{state(pumps?.[id])}</b></span><span>Relatado pelo ESP32 <b>{state(actual?.[id])}</b></span></div><div className="pump-buttons"><button disabled={pending || !manual || !pumps || pumps[id]} onClick={()=>void send('/api/pumps',{[id]:true})}>Ligar B{i+1}</button><button disabled={pending} onClick={()=>void send('/api/pumps',{[id]:false})}>Desligar B{i+1}</button></div></div>)}
-      <p className="control-note">Estado relatado pelo controlador; não confirma funcionamento físico. O watchdog desliga as bombas em caso de perda de comunicação.</p>
+      <p className="control-note">Estado informado pelo ESP32; sem confirmação física.</p>
     </aside></div>
   </div>
 }
